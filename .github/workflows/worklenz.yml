@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,16 +21,35 @@ jobs:
       with:
         node-version: '18'
 
+    - name: 💾 Cache node modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          frontend/node_modules
+          backend/node_modules
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
     - name: 📦 Install & Build Frontend
+      working-directory: frontend
       run: |
-        cd frontend
         npm install
         npm run build
 
     - name: 📦 Install Backend Dependencies
-      run: |
-        cd backend
-        npm install
+      working-directory: backend
+      run: npm install
 
-    - name: ✅ Build Success
-      run: echo "✅ CI build completed successfully"
+    - name: 🔐 Login to GitHub Container Registry
+      run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: 📦 Publish Docker Image to GHCR
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: ghcr.io/${{ github.repository_owner }}/worklenz_frontend:latest
+
+    - name: ✅ Build and Publish Completed
+      run: echo "✅ CI build & Docker publish completed successfully"
