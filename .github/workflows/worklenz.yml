@@ -1,0 +1,33 @@
+name: CI - Build Worklenz Frontend & Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 🔄 Checkout source code
+      uses: actions/checkout@v3
+
+    - name: ⚙️ Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: 📦 Install & Build Frontend
+      run: |
+        cd frontend
+        npm install
+        npm run build
+
+    - name: 📦 Install Backend Dependencies
+      run: |
+        cd backend
+        npm install
+
+    - name: ✅ Build Success
+      run: echo "✅ CI build completed successfully"
