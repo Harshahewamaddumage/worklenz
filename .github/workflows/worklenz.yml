@@ -26,6 +26,6 @@ jobs:
           file: ./worklenz-frontend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/worklenz_frontend:latest
-            ghcr.io/${{ github.repository_owner }}/worklenz_frontend:${{ github.sha }}
+            ghcr.io/harshahewamaddumage/worklenz_frontend:latest
+            ghcr.io/harshahewamaddumage/worklenz_frontend:${{ github.sha }}
 
