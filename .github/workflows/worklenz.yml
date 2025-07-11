@@ -9,11 +9,12 @@ on:
       - main
 
 env:
+  env:
   FRONTEND_DIR: worklenz-frontend
   BACKEND_DIR: worklenz-backend
   GHCR_REPO: ghcr.io/${{ github.repository }}
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/worklenz-frontend:latest
-  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/worklenz-backend:latest
+  FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner.toLower() }}/worklenz-frontend:latest
+  BACKEND_IMAGE: ghcr.io/${{ github.repository_owner.toLower() }}/worklenz-backend:latest
 
 jobs:
   build-and-deploy:
