@@ -1,4 +1,4 @@
-import { Flex, Typography } from 'antd';
+import { Flex, Typography } from '@/shared/antd-imports';
 import SettingsSidebar from '../pages/settings/sidebar/settings-sidebar';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useMediaQuery } from 'react-responsive';
@@ -11,11 +11,7 @@ const SettingsLayout = () => {
   const currentSession = getCurrentSession();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (currentSession?.is_expired) {
-      navigate('/worklenz/license-expired');
-    }
-  }, [currentSession, navigate]);
+  
 
   return (
     <div style={{ marginBlock: 96, minHeight: '90vh' }}>

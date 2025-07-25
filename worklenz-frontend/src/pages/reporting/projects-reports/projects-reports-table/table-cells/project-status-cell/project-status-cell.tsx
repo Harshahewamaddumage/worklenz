@@ -1,4 +1,4 @@
-import { ConfigProvider, Select, Typography } from 'antd';
+import { ConfigProvider, Select, Typography } from '@/shared/antd-imports';
 import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '@/hooks/useAppSelector';
@@ -35,7 +35,7 @@ const ProjectStatusCell = ({ currentStatus, projectId }: ProjectStatusCellProps)
         {getStatusIcon(status.icon || '', status.color_code || '')}
         {t(`${status.name}`)}
       </Typography.Text>
-    )
+    ),
   }));
 
   const handleStatusChange = (value: string) => {

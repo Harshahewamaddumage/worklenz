@@ -1,4 +1,4 @@
-import { Flex } from 'antd';
+import { Flex } from '@/shared/antd-imports';
 import { useState } from 'react';
 import CustomSearchbar from '@components/CustomSearchbar';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,6 @@ interface OverviewReportsProjectsTabProps {
 const OverviewReportsProjectsTab = ({ teamsId = null }: OverviewReportsProjectsTabProps) => {
   const { t } = useTranslation('reporting-projects-drawer');
   const [searchQuery, setSearchQuery] = useState('');
-
 
   return (
     <Flex vertical gap={24}>

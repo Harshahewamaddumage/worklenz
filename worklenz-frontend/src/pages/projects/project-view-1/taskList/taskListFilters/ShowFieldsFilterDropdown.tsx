@@ -1,5 +1,5 @@
-import { MoreOutlined } from '@ant-design/icons';
-import { Button, Card, Checkbox, Dropdown, List, Space } from 'antd';
+import { MoreOutlined } from '@/shared/antd-imports';
+import { Button, Card, Checkbox, Dropdown, List, Space } from '@/shared/antd-imports';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import {
@@ -24,7 +24,7 @@ const ShowFieldsFilterDropdown = () => {
       key: col.key,
       columnHeader: col.custom_column_obj.columnHeader,
       isCustomColumn: col.custom_column,
-    }))
+    })),
   ];
 
   const columnsVisibility = useAppSelector(
@@ -77,7 +77,7 @@ const ShowFieldsFilterDropdown = () => {
                 }
               />
               {col.custom_column
-                ? col.columnHeader 
+                ? col.columnHeader
                 : t(col.key === 'phases' ? 'phasesText' : `${col.columnHeader}Text`)}
             </Space>
           </List.Item>

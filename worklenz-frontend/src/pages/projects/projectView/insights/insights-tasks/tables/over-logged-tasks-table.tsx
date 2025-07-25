@@ -1,8 +1,8 @@
-import { Avatar, Button, Flex, Table, Typography } from 'antd';
+import { Avatar, Button, Flex, Table, Typography } from '@/shared/antd-imports';
 import { useState, useEffect } from 'react';
 import { colors } from '@/styles/colors';
 import { TableProps } from 'antd/lib';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@/shared/antd-imports';
 import { IInsightTasks } from '@/types/project/projectInsights.types';
 import logger from '@/utils/errorLogger';
 import { projectInsightsApiService } from '@/api/projects/insights/project-insights.api.service';
@@ -14,7 +14,6 @@ const OverLoggedTasksTable = () => {
   const [overLoggedTaskList, setOverLoggedTaskList] = useState<IInsightTasks[]>([]);
   const [loading, setLoading] = useState(true);
   const { refreshTimestamp } = useAppSelector(state => state.projectReducer);
-
 
   const getOverLoggedTasks = async () => {
     try {
@@ -35,7 +34,7 @@ const OverLoggedTasksTable = () => {
 
   useEffect(() => {
     getOverLoggedTasks();
-  }, [projectId, includeArchivedTasks,refreshTimestamp]);
+  }, [projectId, includeArchivedTasks, refreshTimestamp]);
 
   // table columns
   const columns: TableProps['columns'] = [
@@ -105,8 +104,8 @@ const OverLoggedTasksTable = () => {
     {
       key: 'overLoggedTime',
       title: 'Over Logged Time',
-      render: (record: IInsightTasks) => (
-        <Typography.Text>{record.overlogged_time}</Typography.Text>
+      render: (_, record: IInsightTasks) => (
+        <Typography.Text>{record.overlogged_time_string}</Typography.Text>
       ),
     },
   ];

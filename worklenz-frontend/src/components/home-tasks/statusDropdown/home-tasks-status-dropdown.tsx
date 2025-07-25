@@ -1,4 +1,4 @@
-import { Badge, Flex, Select } from 'antd';
+import { Badge, Flex, Select } from '@/shared/antd-imports';
 import './home-tasks-status-dropdown.css';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useTranslation } from 'react-i18next';
@@ -20,11 +20,9 @@ const HomeTasksStatusDropdown = ({ task, teamId }: HomeTasksStatusDropdownProps)
   const { t } = useTranslation('task-list-table');
   const { socket, connected } = useSocket();
   const { homeTasksConfig } = useAppSelector(state => state.homePageReducer);
-  const {
-      refetch
-    } = useGetMyTasksQuery(homeTasksConfig, {
-      skip: true // Skip automatic queries entirely
-    });
+  const { refetch } = useGetMyTasksQuery(homeTasksConfig, {
+    skip: false, // Ensure this query runs
+  });
 
   const [selectedStatus, setSelectedStatus] = useState<ITaskStatus | undefined>(undefined);
 

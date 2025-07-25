@@ -3351,15 +3351,15 @@ BEGIN
     SELECT COALESCE(ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(rec))), '[]'::JSON)
     FROM (SELECT team_member_id,
                  project_member_id,
-                 (SELECT name FROM team_member_info_view WHERE team_member_info_view.team_member_id = tm.id),
-                 (SELECT email_notifications_enabled
+                 COALESCE((SELECT name FROM team_member_info_view WHERE team_member_info_view.team_member_id = tm.id), '') as name,
+                 COALESCE((SELECT email_notifications_enabled
                   FROM notification_settings
                   WHERE team_id = tm.team_id
-                    AND notification_settings.user_id = u.id) AS email_notifications_enabled,
-                 u.avatar_url,
+                    AND notification_settings.user_id = u.id), false) AS email_notifications_enabled,
+                 COALESCE(u.avatar_url, '') as avatar_url,
                  u.id AS user_id,
-                 u.email,
-                 u.socket_id AS socket_id,
+                 COALESCE(u.email, '') as email,
+                 COALESCE(u.socket_id, '') as socket_id,
                  tm.team_id AS team_id
           FROM tasks_assignees
                    INNER JOIN team_members tm ON tm.id = tasks_assignees.team_member_id
@@ -4066,14 +4066,14 @@ DECLARE
     _schedule_id          JSON;
     _task_completed_at    TIMESTAMPTZ;
 BEGIN
-    SELECT name FROM tasks WHERE id = _task_id INTO _task_name;
+    SELECT COALESCE(name, '') FROM tasks WHERE id = _task_id INTO _task_name;
 
-    SELECT name
+    SELECT COALESCE(name, '')
     FROM task_statuses
     WHERE id = (SELECT status_id FROM tasks WHERE id = _task_id)
     INTO _previous_status_name;
 
-    SELECT name FROM task_statuses WHERE id = _status_id INTO _new_status_name;
+    SELECT COALESCE(name, '') FROM task_statuses WHERE id = _status_id INTO _new_status_name;
 
     IF (_previous_status_name != _new_status_name)
     THEN
@@ -4081,14 +4081,22 @@ BEGIN
 
         SELECT get_task_complete_info(_task_id, _status_id) INTO _task_info;
 
-        SELECT name FROM users WHERE id = _user_id INTO _updater_name;
+        SELECT COALESCE(name, '') FROM users WHERE id = _user_id INTO _updater_name;
 
         _message = CONCAT(_updater_name, ' transitioned "', _task_name, '" from ', _previous_status_name, ' ⟶ ',
                           _new_status_name);
     END IF;
 
     SELECT completed_at FROM tasks WHERE id = _task_id INTO _task_completed_at;
-    SELECT schedule_id FROM tasks WHERE id = _task_id INTO _schedule_id;
+    
+    -- Handle schedule_id properly for recurring tasks
+    SELECT CASE 
+        WHEN schedule_id IS NULL THEN 'null'::json
+        ELSE json_build_object('id', schedule_id)
+    END
+    FROM tasks 
+    WHERE id = _task_id 
+    INTO _schedule_id;
 
     SELECT COALESCE(ROW_TO_JSON(r), '{}'::JSON)
     FROM (SELECT is_done, is_doing, is_todo
@@ -4097,7 +4105,7 @@ BEGIN
     INTO _status_category;
 
     RETURN JSON_BUILD_OBJECT(
-            'message', _message,
+            'message', COALESCE(_message, ''),
             'project_id', (SELECT project_id FROM tasks WHERE id = _task_id),
             'parent_done', (CASE
                                 WHEN EXISTS(SELECT 1
@@ -4105,14 +4113,14 @@ BEGIN
                                             WHERE tasks_with_status_view.task_id = _task_id
                                               AND is_done IS TRUE) THEN 1
                                 ELSE 0 END),
-            'color_code', (_task_info ->> 'color_code')::TEXT,
-            'color_code_dark', (_task_info ->> 'color_code_dark')::TEXT,
-            'total_tasks', (_task_info ->> 'total_tasks')::INT,
-            'total_completed', (_task_info ->> 'total_completed')::INT,
-            'members', (_task_info ->> 'members')::JSON,
+            'color_code', COALESCE((_task_info ->> 'color_code')::TEXT, ''),
+            'color_code_dark', COALESCE((_task_info ->> 'color_code_dark')::TEXT, ''),
+            'total_tasks', COALESCE((_task_info ->> 'total_tasks')::INT, 0),
+            'total_completed', COALESCE((_task_info ->> 'total_completed')::INT, 0),
+            'members', COALESCE((_task_info ->> 'members')::JSON, '[]'::JSON),
             'completed_at', _task_completed_at,
-            'status_category', _status_category,
-            'schedule_id', _schedule_id
+            'status_category', COALESCE(_status_category, '{}'::JSON),
+            'schedule_id', COALESCE(_schedule_id, 'null'::JSON)
            );
 END
 $$;
@@ -4305,6 +4313,24 @@ BEGIN
 END
 $$;
 
+-- Helper function to get the appropriate sort column name based on grouping type
+CREATE OR REPLACE FUNCTION get_sort_column_name(_group_by TEXT) RETURNS TEXT
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CASE _group_by
+        WHEN 'status' THEN RETURN 'status_sort_order';
+        WHEN 'priority' THEN RETURN 'priority_sort_order';
+        WHEN 'phase' THEN RETURN 'phase_sort_order';
+        WHEN 'members' THEN RETURN 'member_sort_order';
+        -- For backward compatibility, still support general sort_order but be explicit
+        WHEN 'general' THEN RETURN 'sort_order';
+        ELSE RETURN 'status_sort_order'; -- Default to status sorting
+    END CASE;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION handle_task_list_sort_order_change(_body json) RETURNS void
     LANGUAGE plpgsql
 AS
@@ -4317,54 +4343,67 @@ DECLARE
     _from_group UUID;
     _to_group   UUID;
     _group_by   TEXT;
+    _sort_column TEXT;
+    _sql TEXT;
 BEGIN
     _project_id = (_body ->> 'project_id')::UUID;
     _task_id = (_body ->> 'task_id')::UUID;
-
-    _from_index = (_body ->> 'from_index')::INT; -- from sort_order
-    _to_index = (_body ->> 'to_index')::INT; -- to sort_order
-
+    _from_index = (_body ->> 'from_index')::INT;
+    _to_index = (_body ->> 'to_index')::INT;
     _from_group = (_body ->> 'from_group')::UUID;
     _to_group = (_body ->> 'to_group')::UUID;
-
     _group_by = (_body ->> 'group_by')::TEXT;
-
-    IF (_from_group <> _to_group OR (_from_group <> _to_group) IS NULL)
-    THEN
-        IF (_group_by = 'status')
-        THEN
-            UPDATE tasks SET status_id = _to_group WHERE id = _task_id AND status_id = _from_group;
+    
+    -- Get the appropriate sort column
+    _sort_column := get_sort_column_name(_group_by);
+    
+    -- Handle group changes first
+    IF (_from_group <> _to_group OR (_from_group <> _to_group) IS NULL) THEN
+        IF (_group_by = 'status') THEN
+            UPDATE tasks 
+            SET status_id = _to_group, updated_at = CURRENT_TIMESTAMP
+            WHERE id = _task_id 
+              AND project_id = _project_id;
         END IF;
-
-        IF (_group_by = 'priority')
-        THEN
-            UPDATE tasks SET priority_id = _to_group WHERE id = _task_id AND priority_id = _from_group;
+        
+        IF (_group_by = 'priority') THEN
+            UPDATE tasks 
+            SET priority_id = _to_group, updated_at = CURRENT_TIMESTAMP
+            WHERE id = _task_id 
+              AND project_id = _project_id;
         END IF;
-
-        IF (_group_by = 'phase')
-        THEN
-            IF (is_null_or_empty(_to_group) IS FALSE)
-            THEN
+        
+        IF (_group_by = 'phase') THEN
+            IF (is_null_or_empty(_to_group) IS FALSE) THEN
                 INSERT INTO task_phase (task_id, phase_id)
                 VALUES (_task_id, _to_group)
                 ON CONFLICT (task_id) DO UPDATE SET phase_id = _to_group;
-            END IF;
-            IF (is_null_or_empty(_to_group) IS TRUE)
-            THEN
-                DELETE
-                FROM task_phase
-                WHERE task_id = _task_id;
+            ELSE
+                DELETE FROM task_phase WHERE task_id = _task_id;
             END IF;
         END IF;
+    END IF;
 
-        IF ((_body ->> 'to_last_index')::BOOLEAN IS TRUE AND _from_index < _to_index)
-        THEN
-            PERFORM handle_task_list_sort_inside_group(_from_index, _to_index, _task_id, _project_id);
+    -- Handle sort order changes for the grouping-specific column only
+    IF (_from_index <> _to_index) THEN
+        -- Update the grouping-specific sort order (no unique constraint issues)
+        IF (_to_index > _from_index) THEN
+            -- Moving down: decrease sort order for items between old and new position
+            _sql := 'UPDATE tasks SET ' || _sort_column || ' = ' || _sort_column || ' - 1, ' ||
+                   'updated_at = CURRENT_TIMESTAMP ' ||
+                   'WHERE project_id = $1 AND ' || _sort_column || ' > $2 AND ' || _sort_column || ' <= $3';
+            EXECUTE _sql USING _project_id, _from_index, _to_index;
         ELSE
-            PERFORM handle_task_list_sort_between_groups(_from_index, _to_index, _task_id, _project_id);
+            -- Moving up: increase sort order for items between new and old position  
+            _sql := 'UPDATE tasks SET ' || _sort_column || ' = ' || _sort_column || ' + 1, ' ||
+                   'updated_at = CURRENT_TIMESTAMP ' ||
+                   'WHERE project_id = $1 AND ' || _sort_column || ' >= $2 AND ' || _sort_column || ' < $3';
+            EXECUTE _sql USING _project_id, _to_index, _from_index;
         END IF;
-    ELSE
-        PERFORM handle_task_list_sort_inside_group(_from_index, _to_index, _task_id, _project_id);
+        
+        -- Set the new sort order for the moved task
+        _sql := 'UPDATE tasks SET ' || _sort_column || ' = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2';
+        EXECUTE _sql USING _to_index, _task_id;
     END IF;
 END
 $$;
@@ -4569,31 +4608,31 @@ BEGIN
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
     VALUES (_project_id, 'Progress', 'PROGRESS', 3, TRUE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Members', 'ASSIGNEES', 4, TRUE);
+    VALUES (_project_id, 'Status', 'STATUS', 4, TRUE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Labels', 'LABELS', 5, TRUE);
+    VALUES (_project_id, 'Members', 'ASSIGNEES', 5, TRUE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Status', 'STATUS', 6, TRUE);
+    VALUES (_project_id, 'Labels', 'LABELS', 6, TRUE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Priority', 'PRIORITY', 7, TRUE);
+    VALUES (_project_id, 'Phase', 'PHASE', 7, TRUE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Time Tracking', 'TIME_TRACKING', 8, TRUE);
+    VALUES (_project_id, 'Priority', 'PRIORITY', 8, TRUE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Estimation', 'ESTIMATION', 9, FALSE);
+    VALUES (_project_id, 'Time Tracking', 'TIME_TRACKING', 9, TRUE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Start Date', 'START_DATE', 10, FALSE);
+    VALUES (_project_id, 'Estimation', 'ESTIMATION', 10, FALSE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Due Date', 'DUE_DATE', 11, TRUE);
+    VALUES (_project_id, 'Start Date', 'START_DATE', 11, FALSE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Completed Date', 'COMPLETED_DATE', 12, FALSE);
+    VALUES (_project_id, 'Due Date', 'DUE_DATE', 12, TRUE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Created Date', 'CREATED_DATE', 13, FALSE);
+    VALUES (_project_id, 'Completed Date', 'COMPLETED_DATE', 13, FALSE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Last Updated', 'LAST_UPDATED', 14, FALSE);
+    VALUES (_project_id, 'Created Date', 'CREATED_DATE', 14, FALSE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Reporter', 'REPORTER', 15, FALSE);
+    VALUES (_project_id, 'Last Updated', 'LAST_UPDATED', 15, FALSE);
     INSERT INTO project_task_list_cols (project_id, name, key, index, pinned)
-    VALUES (_project_id, 'Phase', 'PHASE', 16, FALSE);
+    VALUES (_project_id, 'Reporter', 'REPORTER', 16, FALSE);
 END
 $$;
 
@@ -5477,8 +5516,15 @@ $$
 DECLARE
     _iterator  NUMERIC := 0;
     _status_id TEXT;
+    _project_id UUID;
+    _base_sort_order NUMERIC;
 BEGIN
+    -- Get the project_id from the first status to ensure we update all statuses in the same project
+    SELECT project_id INTO _project_id
+    FROM task_statuses 
+    WHERE id = (SELECT TRIM(BOTH '"' FROM JSON_ARRAY_ELEMENTS(_status_ids)::TEXT) LIMIT 1)::UUID;
 
+    -- Update the sort_order for statuses in the provided order
     FOR _status_id IN SELECT * FROM JSON_ARRAY_ELEMENTS((_status_ids)::JSON)
         LOOP
             UPDATE task_statuses
@@ -5486,6 +5532,29 @@ BEGIN
             WHERE id = (SELECT TRIM(BOTH '"' FROM _status_id))::UUID;
             _iterator := _iterator + 1;
         END LOOP;
+
+    -- Get the base sort order for remaining statuses (simple count approach)
+    SELECT COUNT(*) INTO _base_sort_order
+    FROM task_statuses ts2 
+    WHERE ts2.project_id = _project_id 
+    AND ts2.id = ANY(SELECT (TRIM(BOTH '"' FROM JSON_ARRAY_ELEMENTS(_status_ids)::TEXT))::UUID);
+
+    -- Update remaining statuses with simple sequential numbering
+    -- Reset iterator to start from base_sort_order
+    _iterator := _base_sort_order;
+    
+    -- Use a cursor approach to avoid window functions
+    FOR _status_id IN 
+        SELECT id::TEXT FROM task_statuses 
+        WHERE project_id = _project_id 
+        AND id NOT IN (SELECT (TRIM(BOTH '"' FROM JSON_ARRAY_ELEMENTS(_status_ids)::TEXT))::UUID)
+        ORDER BY sort_order
+    LOOP
+        UPDATE task_statuses 
+        SET sort_order = _iterator
+        WHERE id = _status_id::UUID;
+        _iterator := _iterator + 1;
+    END LOOP;
 
     RETURN;
 END
@@ -6146,5 +6215,436 @@ BEGIN
     RETURNING id INTO v_new_id;
 
     RETURN v_new_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION transfer_team_ownership(_team_id UUID, _new_owner_id UUID) RETURNS json
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    _old_owner_id UUID;
+    _owner_role_id UUID;
+    _admin_role_id UUID;
+    _old_org_id UUID;
+    _new_org_id UUID;
+    _has_license BOOLEAN;
+    _old_owner_role_id UUID;
+    _new_owner_role_id UUID;
+    _has_active_coupon BOOLEAN;
+    _other_teams_count INTEGER;
+    _new_owner_org_id UUID;
+    _license_type_id UUID;
+    _has_valid_license BOOLEAN;
+BEGIN
+    -- Get the current owner's ID and organization
+    SELECT t.user_id, t.organization_id 
+    INTO _old_owner_id, _old_org_id 
+    FROM teams t 
+    WHERE t.id = _team_id;
+    
+    IF _old_owner_id IS NULL THEN
+        RAISE EXCEPTION 'Team not found';
+    END IF;
+
+    -- Get the new owner's organization
+    SELECT organization_id INTO _new_owner_org_id
+    FROM organizations
+    WHERE user_id = _new_owner_id;
+
+    -- Get the old organization
+    SELECT id INTO _old_org_id
+    FROM organizations
+    WHERE id = _old_org_id;
+
+    IF _old_org_id IS NULL THEN
+        RAISE EXCEPTION 'Organization not found';
+    END IF;
+
+    -- Check if new owner has any valid license type
+    SELECT EXISTS (
+        SELECT 1 
+        FROM (
+            -- Check regular subscriptions
+            SELECT lus.user_id, lus.status, lus.active
+            FROM licensing_user_subscriptions lus
+            WHERE lus.user_id = _new_owner_id 
+            AND lus.active = TRUE
+            AND lus.status IN ('active', 'trialing')
+            
+            UNION ALL
+            
+            -- Check custom subscriptions
+            SELECT lcs.user_id, lcs.subscription_status as status, TRUE as active
+            FROM licensing_custom_subs lcs
+            WHERE lcs.user_id = _new_owner_id
+            AND lcs.end_date > CURRENT_DATE
+            
+            UNION ALL
+            
+            -- Check trial status in organizations
+            SELECT o.user_id, o.subscription_status as status, TRUE as active
+            FROM organizations o
+            WHERE o.user_id = _new_owner_id
+            AND o.trial_in_progress = TRUE
+            AND o.trial_expire_date > CURRENT_DATE
+        ) valid_licenses
+    ) INTO _has_valid_license;
+
+    IF NOT _has_valid_license THEN
+        RAISE EXCEPTION 'New owner does not have a valid license (subscription, custom subscription, or trial)';
+    END IF;
+
+    -- Check if new owner has any active coupon codes
+    SELECT EXISTS (
+        SELECT 1 
+        FROM licensing_coupon_codes lcc
+        WHERE lcc.redeemed_by = _new_owner_id 
+        AND lcc.is_redeemed = TRUE
+        AND lcc.is_refunded = FALSE
+    ) INTO _has_active_coupon;
+
+    IF _has_active_coupon THEN
+        RAISE EXCEPTION 'New owner has active coupon codes that need to be handled before transfer';
+    END IF;
+
+    -- Count other teams in the organization for information purposes
+    SELECT COUNT(*) INTO _other_teams_count
+    FROM teams
+    WHERE organization_id = _old_org_id
+    AND id != _team_id;
+
+    -- If new owner has their own organization, move the team to their organization
+    IF _new_owner_org_id IS NOT NULL THEN
+        -- Update the team to use the new owner's organization
+        UPDATE teams 
+        SET user_id = _new_owner_id,
+            organization_id = _new_owner_org_id
+        WHERE id = _team_id;
+        
+        -- Create notification about organization change
+        PERFORM create_notification(
+            _old_owner_id,
+            _team_id,
+            NULL,
+            NULL,
+            CONCAT('Team <b>', (SELECT name FROM teams WHERE id = _team_id), '</b> has been moved to a different organization')
+        );
+
+        PERFORM create_notification(
+            _new_owner_id,
+            _team_id,
+            NULL,
+            NULL,
+            CONCAT('Team <b>', (SELECT name FROM teams WHERE id = _team_id), '</b> has been moved to your organization')
+        );
+    ELSE
+        -- If new owner doesn't have an organization, transfer the old organization to them
+        UPDATE organizations
+        SET user_id = _new_owner_id
+        WHERE id = _old_org_id;
+        
+        -- Update the team to use the same organization
+        UPDATE teams 
+        SET user_id = _new_owner_id,
+            organization_id = _old_org_id
+        WHERE id = _team_id;
+
+        -- Notify both users about organization ownership transfer
+        PERFORM create_notification(
+            _old_owner_id,
+            NULL,
+            NULL,
+            NULL,
+            CONCAT('You are no longer the owner of organization <b>', (SELECT organization_name FROM organizations WHERE id = _old_org_id), '</b>')
+        );
+
+        PERFORM create_notification(
+            _new_owner_id,
+            NULL,
+            NULL,
+            NULL,
+            CONCAT('You are now the owner of organization <b>', (SELECT organization_name FROM organizations WHERE id = _old_org_id), '</b>')
+        );
+    END IF;
+    
+    -- Get the owner and admin role IDs
+    SELECT id INTO _owner_role_id FROM roles WHERE team_id = _team_id AND owner = TRUE;
+    SELECT id INTO _admin_role_id FROM roles WHERE team_id = _team_id AND admin_role = TRUE;
+
+    -- Get current role IDs for both users
+    SELECT role_id INTO _old_owner_role_id 
+    FROM team_members 
+    WHERE team_id = _team_id AND user_id = _old_owner_id;
+
+    SELECT role_id INTO _new_owner_role_id 
+    FROM team_members 
+    WHERE team_id = _team_id AND user_id = _new_owner_id;
+    
+    -- Update the old owner's role to admin if they want to stay in the team
+    IF _old_owner_role_id IS NOT NULL THEN
+        UPDATE team_members 
+        SET role_id = _admin_role_id 
+        WHERE team_id = _team_id AND user_id = _old_owner_id;
+    END IF;
+    
+    -- Update the new owner's role to owner
+    IF _new_owner_role_id IS NOT NULL THEN
+        UPDATE team_members 
+        SET role_id = _owner_role_id 
+        WHERE team_id = _team_id AND user_id = _new_owner_id;
+    ELSE
+        -- If new owner is not a team member yet, add them
+        INSERT INTO team_members (user_id, team_id, role_id)
+        VALUES (_new_owner_id, _team_id, _owner_role_id);
+    END IF;
+
+    -- Create notification for both users about team ownership
+    PERFORM create_notification(
+        _old_owner_id,
+        _team_id,
+        NULL,
+        NULL,
+        CONCAT('You are no longer the owner of team <b>', (SELECT name FROM teams WHERE id = _team_id), '</b>')
+    );
+
+    PERFORM create_notification(
+        _new_owner_id,
+        _team_id,
+        NULL,
+        NULL,
+        CONCAT('You are now the owner of team <b>', (SELECT name FROM teams WHERE id = _team_id), '</b>')
+    );
+    
+    RETURN json_build_object(
+        'success', TRUE,
+        'old_owner_id', _old_owner_id,
+        'new_owner_id', _new_owner_id,
+        'team_id', _team_id,
+        'old_org_id', _old_org_id,
+        'new_org_id', COALESCE(_new_owner_org_id, _old_org_id),
+        'old_role_id', _old_owner_role_id,
+        'new_role_id', _new_owner_role_id,
+        'has_valid_license', _has_valid_license,
+        'has_active_coupon', _has_active_coupon,
+        'other_teams_count', _other_teams_count,
+        'org_ownership_transferred', _new_owner_org_id IS NULL,
+        'team_moved_to_new_org', _new_owner_org_id IS NOT NULL
+    );
+END;
+$$;
+
+-- PERFORMANCE OPTIMIZATION: Optimized version with batching for large datasets
+CREATE OR REPLACE FUNCTION handle_task_list_sort_between_groups_optimized(_from_index integer, _to_index integer, _task_id uuid, _project_id uuid, _batch_size integer DEFAULT 100) RETURNS void
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    _offset INT := 0;
+    _affected_rows INT;
+BEGIN
+    -- PERFORMANCE OPTIMIZATION: Use direct updates without CTE in UPDATE
+    IF (_to_index = -1)
+    THEN
+        _to_index = COALESCE((SELECT MAX(sort_order) + 1 FROM tasks WHERE project_id = _project_id), 0);
+    END IF;
+
+    -- PERFORMANCE OPTIMIZATION: Batch updates for large datasets
+    IF _to_index > _from_index
+    THEN
+        LOOP
+            UPDATE tasks
+            SET sort_order = sort_order - 1
+            WHERE project_id = _project_id
+              AND sort_order > _from_index
+              AND sort_order < _to_index
+              AND sort_order > _offset
+              AND sort_order <= _offset + _batch_size;
+            
+            GET DIAGNOSTICS _affected_rows = ROW_COUNT;
+            EXIT WHEN _affected_rows = 0;
+            _offset := _offset + _batch_size;
+        END LOOP;
+
+        UPDATE tasks SET sort_order = _to_index - 1 WHERE id = _task_id AND project_id = _project_id;
+    END IF;
+
+    IF _to_index < _from_index
+    THEN
+        _offset := 0;
+        LOOP
+            UPDATE tasks
+            SET sort_order = sort_order + 1
+            WHERE project_id = _project_id
+              AND sort_order > _to_index
+              AND sort_order < _from_index
+              AND sort_order > _offset
+              AND sort_order <= _offset + _batch_size;
+            
+            GET DIAGNOSTICS _affected_rows = ROW_COUNT;
+            EXIT WHEN _affected_rows = 0;
+            _offset := _offset + _batch_size;
+        END LOOP;
+
+        UPDATE tasks SET sort_order = _to_index + 1 WHERE id = _task_id AND project_id = _project_id;
+    END IF;
+END
+$$;
+
+-- PERFORMANCE OPTIMIZATION: Optimized version with batching for large datasets
+CREATE OR REPLACE FUNCTION handle_task_list_sort_inside_group_optimized(_from_index integer, _to_index integer, _task_id uuid, _project_id uuid, _batch_size integer DEFAULT 100) RETURNS void
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    _offset INT := 0;
+    _affected_rows INT;
+BEGIN
+    -- PERFORMANCE OPTIMIZATION: Batch updates for large datasets without CTE in UPDATE
+    IF _to_index > _from_index
+    THEN
+        LOOP
+            UPDATE tasks
+            SET sort_order = sort_order - 1
+            WHERE project_id = _project_id
+              AND sort_order > _from_index
+              AND sort_order <= _to_index
+              AND sort_order > _offset
+              AND sort_order <= _offset + _batch_size;
+            
+            GET DIAGNOSTICS _affected_rows = ROW_COUNT;
+            EXIT WHEN _affected_rows = 0;
+            _offset := _offset + _batch_size;
+        END LOOP;
+    END IF;
+
+    IF _to_index < _from_index
+    THEN
+        _offset := 0;
+        LOOP
+            UPDATE tasks
+            SET sort_order = sort_order + 1
+            WHERE project_id = _project_id
+              AND sort_order >= _to_index
+              AND sort_order < _from_index
+              AND sort_order > _offset
+              AND sort_order <= _offset + _batch_size;
+            
+            GET DIAGNOSTICS _affected_rows = ROW_COUNT;
+            EXIT WHEN _affected_rows = 0;
+            _offset := _offset + _batch_size;
+        END LOOP;
+    END IF;
+
+    UPDATE tasks SET sort_order = _to_index WHERE id = _task_id AND project_id = _project_id;
+END
+$$;
+
+-- Updated bulk sort order function that avoids sort_order conflicts
+CREATE OR REPLACE FUNCTION update_task_sort_orders_bulk(_updates json, _group_by text DEFAULT 'status') RETURNS void
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    _update_record RECORD;
+    _sort_column TEXT;
+    _sql TEXT;
+BEGIN
+    -- Get the appropriate sort column based on grouping
+    _sort_column := get_sort_column_name(_group_by);
+    
+    -- Process each update record
+    FOR _update_record IN 
+        SELECT 
+            (item->>'task_id')::uuid as task_id,
+            (item->>'sort_order')::int as sort_order,
+            (item->>'status_id')::uuid as status_id,
+            (item->>'priority_id')::uuid as priority_id,
+            (item->>'phase_id')::uuid as phase_id
+        FROM json_array_elements(_updates) as item
+    LOOP
+        -- Update the grouping-specific sort column and other fields
+        _sql := 'UPDATE tasks SET ' || _sort_column || ' = $1, ' ||
+                'status_id = COALESCE($2, status_id), ' ||
+                'priority_id = COALESCE($3, priority_id), ' ||
+                'updated_at = CURRENT_TIMESTAMP ' ||
+                'WHERE id = $4';
+        
+        EXECUTE _sql USING 
+            _update_record.sort_order,
+            _update_record.status_id,
+            _update_record.priority_id,
+            _update_record.task_id;
+        
+        -- Handle phase updates separately since it's in a different table
+        IF _update_record.phase_id IS NOT NULL THEN
+            INSERT INTO task_phase (task_id, phase_id)
+            VALUES (_update_record.task_id, _update_record.phase_id)
+            ON CONFLICT (task_id) DO UPDATE SET phase_id = _update_record.phase_id;
+        END IF;
+    END LOOP;
+END
+$$;
+
+-- Function to get the appropriate sort column name based on grouping type
+CREATE OR REPLACE FUNCTION get_sort_column_name(_group_by TEXT) RETURNS TEXT
+    LANGUAGE plpgsql
+AS
+$$
+BEGIN
+    CASE _group_by
+        WHEN 'status' THEN RETURN 'status_sort_order';
+        WHEN 'priority' THEN RETURN 'priority_sort_order';
+        WHEN 'phase' THEN RETURN 'phase_sort_order';
+        -- For backward compatibility, still support general sort_order but be explicit
+        WHEN 'general' THEN RETURN 'sort_order';
+        ELSE RETURN 'status_sort_order'; -- Default to status sorting
+    END CASE;
+END;
+$$;
+
+-- Updated bulk sort order function to handle different sort columns
+CREATE OR REPLACE FUNCTION update_task_sort_orders_bulk(_updates json, _group_by text DEFAULT 'status') RETURNS void
+    LANGUAGE plpgsql
+AS
+$$
+DECLARE
+    _update_record RECORD;
+    _sort_column TEXT;
+    _sql TEXT;
+BEGIN
+    -- Get the appropriate sort column based on grouping
+    _sort_column := get_sort_column_name(_group_by);
+    
+    -- Process each update record
+    FOR _update_record IN 
+        SELECT 
+            (item->>'task_id')::uuid as task_id,
+            (item->>'sort_order')::int as sort_order,
+            (item->>'status_id')::uuid as status_id,
+            (item->>'priority_id')::uuid as priority_id,
+            (item->>'phase_id')::uuid as phase_id
+        FROM json_array_elements(_updates) as item
+    LOOP
+        -- Update the grouping-specific sort column and other fields
+        _sql := 'UPDATE tasks SET ' || _sort_column || ' = $1, ' ||
+                'status_id = COALESCE($2, status_id), ' ||
+                'priority_id = COALESCE($3, priority_id), ' ||
+                'updated_at = CURRENT_TIMESTAMP ' ||
+                'WHERE id = $4';
+        
+        EXECUTE _sql USING 
+            _update_record.sort_order,
+            _update_record.status_id,
+            _update_record.priority_id,
+            _update_record.task_id;
+        
+        -- Handle phase updates separately since it's in a different table
+        IF _update_record.phase_id IS NOT NULL THEN
+            INSERT INTO task_phase (task_id, phase_id)
+            VALUES (_update_record.task_id, _update_record.phase_id)
+            ON CONFLICT (task_id) DO UPDATE SET phase_id = _update_record.phase_id;
+        END IF;
+    END LOOP;
 END;
 $$;

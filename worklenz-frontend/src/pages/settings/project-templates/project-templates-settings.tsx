@@ -1,8 +1,8 @@
-import { Button, Card, Popconfirm, Table, TableProps, Tooltip, Typography } from 'antd';
-import React, { useEffect, useState } from 'react';
+import { Button, Card, Popconfirm, Table, TableProps, Tooltip, Typography } from '@/shared/antd-imports';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { DeleteOutlined } from '@/shared/antd-imports';
 import { useNavigate } from 'react-router-dom';
 import { useDocumentTitle } from '@/hooks/useDoumentTItle';
 import { projectTemplatesApiService } from '@/api/project-templates/project-templates.api.service';
@@ -32,7 +32,7 @@ const ProjectTemplatesSettings = () => {
       const res = await projectTemplatesApiService.deleteCustomTemplate(id);
       if (res.done) {
         fetchProjectTemplates();
-      } 
+      }
     } catch (error) {
       logger.error('Failed to delete project template:', error);
     }
@@ -51,7 +51,7 @@ const ProjectTemplatesSettings = () => {
           style={{ display: 'flex', gap: '10px', justifyContent: 'right' }}
           className="button-visibilty"
         >
-          <Tooltip title={t('editToolTip')}>
+          {/* <Tooltip title={t('editToolTip')}>
             <Button
               size="small"
               onClick={() =>
@@ -60,7 +60,7 @@ const ProjectTemplatesSettings = () => {
             >
               <EditOutlined />
             </Button>
-          </Tooltip>
+          </Tooltip> */}
           <Tooltip title={t('deleteToolTip')}>
             <Popconfirm
               title={

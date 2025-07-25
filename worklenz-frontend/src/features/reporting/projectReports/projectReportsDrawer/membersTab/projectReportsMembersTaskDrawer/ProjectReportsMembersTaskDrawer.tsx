@@ -1,6 +1,6 @@
-import { Drawer, Typography, Flex, Button } from 'antd';
+import { Drawer, Typography, Flex, Button } from '@/shared/antd-imports';
 import React, { useMemo, useState } from 'react';
-import { FileOutlined } from '@ant-design/icons';
+import { FileOutlined } from '@/shared/antd-imports';
 import { useTranslation } from 'react-i18next';
 
 import { useAppDispatch } from '@/hooks/useAppDispatch';
@@ -27,7 +27,6 @@ const ProjectReportsMembersTaskDrawer = () => {
 
   const handleAfterOpenChange = (open: boolean) => {
     if (open) {
-      
     }
   };
 
@@ -61,9 +60,7 @@ const ProjectReportsMembersTaskDrawer = () => {
           setSearchQuery={setSearchQuery}
         />
 
-        <ProjectReportsMembersTasksTable
-          tasksData={filteredTaskData}
-        />
+        <ProjectReportsMembersTasksTable tasksData={filteredTaskData} />
       </Flex>
     </Drawer>
   );

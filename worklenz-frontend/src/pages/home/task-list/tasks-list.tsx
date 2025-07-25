@@ -1,4 +1,4 @@
-import { ExpandAltOutlined, SyncOutlined } from '@ant-design/icons';
+import { ExpandAltOutlined, SyncOutlined } from '@/shared/antd-imports';
 import {
   Badge,
   Button,
@@ -12,10 +12,10 @@ import {
   Tooltip,
   Typography,
   Pagination,
-} from 'antd';
+} from '@/shared/antd-imports';
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-
+import { useMediaQuery } from 'react-responsive';
 
 import ListView from './list-view';
 import CalendarView from './calendar-view';
@@ -25,7 +25,11 @@ import EmptyListPlaceholder from '@components/EmptyListPlaceholder';
 import { colors } from '@/styles/colors';
 import { setHomeTasksConfig } from '@/features/home-page/home-page.slice';
 import { IMyTask } from '@/types/home/my-tasks.types';
-import { setSelectedTaskId, setShowTaskDrawer, fetchTask } from '@/features/task-drawer/task-drawer.slice';
+import {
+  setSelectedTaskId,
+  setShowTaskDrawer,
+  fetchTask,
+} from '@/features/task-drawer/task-drawer.slice';
 import { useGetMyTasksQuery } from '@/api/home-page/home-page.api.service';
 import { IHomeTasksModel } from '@/types/home/home-page.types';
 import './tasks-list.css';
@@ -35,7 +39,6 @@ import { fetchLabels } from '@/features/taskAttributes/taskLabelSlice';
 import { fetchPriorities } from '@/features/taskAttributes/taskPrioritySlice';
 import { setProjectId } from '@/features/project/project.slice';
 import { getTeamMembers } from '@/features/team-members/team-members.slice';
-
 
 const TasksList: React.FC = React.memo(() => {
   const dispatch = useAppDispatch();
@@ -56,24 +59,25 @@ const TasksList: React.FC = React.memo(() => {
     skip: skipAutoRefetch,
     refetchOnMountOrArgChange: false,
     refetchOnReconnect: false,
-    refetchOnFocus: false
+    refetchOnFocus: false,
   });
 
-  const { t } = useTranslation('home');
+  const { t, ready } = useTranslation('home');
   const { model } = useAppSelector(state => state.homePageReducer);
+  const isMobile = useMediaQuery({ maxWidth: 768 });
 
   const taskModes = useMemo(
     () => [
       {
         value: 0,
-        label: t('home:tasks.assignedToMe'),
+        label: ready ? t('tasks.assignedToMe') : 'Assigned to me',
       },
       {
         value: 1,
-        label: t('home:tasks.assignedByMe'),
+        label: ready ? t('tasks.assignedByMe') : 'Assigned by me',
       },
     ],
-    [t]
+    [t, ready]
   );
 
   const handleSegmentChange = (value: 'List' | 'Calendar') => {
@@ -86,16 +90,21 @@ const TasksList: React.FC = React.memo(() => {
   useEffect(() => {
     dispatch(fetchLabels());
     dispatch(fetchPriorities());
-    dispatch(getTeamMembers({ index: 0, size: 100, field: null, order: null, search: null, all: true }));
+    dispatch(
+      getTeamMembers({ index: 0, size: 100, field: null, order: null, search: null, all: true })
+    );
   }, [dispatch]);
 
-  const handleSelectTask = useCallback((task : IMyTask) => {
-    dispatch(setSelectedTaskId(task.id || ''));
-    dispatch(fetchTask({ taskId: task.id || '', projectId: task.project_id || '' }));
-    dispatch(setProjectId(task.project_id || ''));
-    dispatch(setShowTaskDrawer(true));
-    dispatch(setHomeTasksConfig({ ...homeTasksConfig, selected_task_id: task.id || '' }));
-  }, [dispatch, setSelectedTaskId, setShowTaskDrawer, fetchTask, homeTasksConfig]);
+  const handleSelectTask = useCallback(
+    (task: IMyTask) => {
+      dispatch(setSelectedTaskId(task.id || ''));
+      dispatch(fetchTask({ taskId: task.id || '', projectId: task.project_id || '' }));
+      dispatch(setProjectId(task.project_id || ''));
+      dispatch(setShowTaskDrawer(true));
+      dispatch(setHomeTasksConfig({ ...homeTasksConfig, selected_task_id: task.id || '' }));
+    },
+    [dispatch, setSelectedTaskId, setShowTaskDrawer, fetchTask, homeTasksConfig]
+  );
 
   const refetch = useCallback(() => {
     setSkipAutoRefetch(false);
@@ -116,14 +125,11 @@ const TasksList: React.FC = React.memo(() => {
             <span>{t('tasks.name')}</span>
           </Flex>
         ),
-        width: '150px',
+        width: isMobile ? '50%' : '40%',
         render: (_, record) => (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Tooltip title={record.name}>
-              <Typography.Text
-                ellipsis={{ tooltip: true }}
-                style={{ maxWidth: 150 }}
-              >
+              <Typography.Text style={{ flex: 1, marginRight: 8 }}>
                 {record.name}
               </Typography.Text>
             </Tooltip>
@@ -151,12 +157,14 @@ const TasksList: React.FC = React.memo(() => {
       {
         key: 'project',
         title: t('tasks.project'),
-        width: '120px',
+        width: isMobile ? '30%' : '25%',
         render: (_, record) => {
           return (
             <Tooltip title={record.project_name}>
-              <Typography.Paragraph style={{ margin: 0, paddingInlineEnd: 6, maxWidth:120 }} ellipsis={{ tooltip: true }}>
-                <Badge color={record.phase_color || 'blue'} style={{ marginInlineEnd: 4 }} />
+              <Typography.Paragraph
+                style={{ margin: 0, paddingInlineEnd: 6 }}
+              >
+                <Badge color={record.project_color || 'blue'} style={{ marginInlineEnd: 4 }} />
                 {record.project_name}
               </Typography.Paragraph>
             </Tooltip>
@@ -166,7 +174,7 @@ const TasksList: React.FC = React.memo(() => {
       {
         key: 'status',
         title: t('tasks.status'),
-        width: '180px',
+        width: '20%',
         render: (_, record) => (
           <HomeTasksStatusDropdown task={record} teamId={record.team_id || ''} />
         ),
@@ -174,14 +182,12 @@ const TasksList: React.FC = React.memo(() => {
       {
         key: 'dueDate',
         title: t('tasks.dueDate'),
-        width: '180px',
+        width: '15%',
         dataIndex: 'end_date',
-        render: (_, record) => (
-          <HomeTasksDatePicker record={record} />
-        ),
+        render: (_, record) => <HomeTasksDatePicker record={record} />,
       },
     ],
-    [t, data?.body?.total, currentPage, pageSize, handlePageChange]
+    [t, data?.body?.total, currentPage, pageSize, handlePageChange, isMobile]
   );
 
   const handleTaskModeChange = (value: number) => {
@@ -201,26 +207,32 @@ const TasksList: React.FC = React.memo(() => {
   useEffect(() => {
     dispatch(fetchLabels());
     dispatch(fetchPriorities());
-    dispatch(getTeamMembers({ index: 0, size: 100, field: null, order: null, search: null, all: true }));
+    dispatch(
+      getTeamMembers({ index: 0, size: 100, field: null, order: null, search: null, all: true })
+    );
   }, [dispatch]);
+
 
   return (
     <Card
+      className="task-list-card"
       title={
-        <Flex gap={8} align="center">
+        <Flex gap={8} align="center" className="task-list-mobile-header">
           <Typography.Title level={5} style={{ margin: 0 }}>
             {t('tasks.tasks')}
           </Typography.Title>
           <Select
-            defaultValue={taskModes[0].label}
+            value={homeTasksConfig.tasks_group_by || 0}
             options={taskModes}
             onChange={value => handleTaskModeChange(+value)}
             fieldNames={{ label: 'label', value: 'value' }}
+            className="task-list-mobile-select"
+            style={{ minWidth: 160 }}
           />
         </Flex>
       }
       extra={
-        <Flex gap={8} align="center">
+        <Flex gap={8} align="center" className="task-list-mobile-controls">
           <Tooltip title={t('tasks.refresh')} trigger={'hover'}>
             <Button
               shape="circle"
@@ -231,10 +243,11 @@ const TasksList: React.FC = React.memo(() => {
           <Segmented<'List' | 'Calendar'>
             options={[
               { value: 'List', label: t('tasks.list') },
-              { value: 'Calendar', label: t('tasks.calendar') }
+              { value: 'Calendar', label: t('tasks.calendar') },
             ]}
             defaultValue="List"
             onChange={handleSegmentChange}
+            className="task-list-mobile-segmented"
           />
         </Flex>
       }
@@ -259,23 +272,35 @@ const TasksList: React.FC = React.memo(() => {
         <Skeleton active />
       ) : data?.body.total === 0 ? (
         <EmptyListPlaceholder
-          imageSrc="https://app.worklenz.com/assets/images/empty-box.webp"
+          imageSrc="https://s3.us-west-2.amazonaws.com/worklenz.com/assets/empty-box.webp"
           text=" No tasks to show."
         />
       ) : (
         <>
           <Table
             className="custom-two-colors-row-table"
-            dataSource={data?.body.tasks ? data.body.tasks.slice((currentPage - 1) * pageSize, currentPage * pageSize) : []}
+            dataSource={
+              data?.body.tasks
+                ? data.body.tasks.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                : []
+            }
             rowKey={record => record.id || ''}
             columns={columns as TableProps<IMyTask>['columns']}
             size="middle"
             rowClassName={() => 'custom-row-height'}
-            loading={homeTasksFetching && !skipAutoRefetch}
+            loading={homeTasksFetching && skipAutoRefetch}
             pagination={false}
+            scroll={{ x: 'max-content' }}
           />
-          
-          <div style={{ marginTop: 16, textAlign: 'right', display: 'flex', justifyContent: 'flex-end' }}>
+
+          <div
+            style={{
+              marginTop: 16,
+              textAlign: 'right',
+              display: 'flex',
+              justifyContent: 'flex-end',
+            }}
+          >
             <Pagination
               current={currentPage}
               pageSize={pageSize}

@@ -1,12 +1,12 @@
 // TaskNameCell.tsx
 import React, { useCallback } from 'react';
-import { Flex, Typography, Button } from 'antd';
+import { Flex, Typography, Button } from '@/shared/antd-imports';
 import {
   DoubleRightOutlined,
   DownOutlined,
   RightOutlined,
   ExpandAltOutlined,
-} from '@ant-design/icons';
+} from '@/shared/antd-imports';
 import { colors } from '@/styles/colors';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { setShowTaskDrawer } from '@/features/task-drawer/task-drawer.slice';
@@ -52,7 +52,7 @@ const TaskRowName = React.memo(
       return (
         <button
           onClick={() => handleToggleExpansion(taskId)}
-          className="hover flex h-4 w-4 items-center justify-center rounded text-[12px] hover:border hover:border-[#5587f5] hover:bg-[#d0eefa54] transition duration-150"
+          className="hover flex h-4 w-4 items-center justify-center rounded-sm text-[12px] hover:border hover:border-[#5587f5] hover:bg-[#d0eefa54] transition duration-150"
         >
           {expandedTasks.includes(taskId) ? <DownOutlined /> : <RightOutlined />}
         </button>

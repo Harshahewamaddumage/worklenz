@@ -1,4 +1,4 @@
-import { Typography } from 'antd';
+import { Typography } from '@/shared/antd-imports';
 import DOMPurify from 'dompurify';
 
 const TaskListDescriptionCell = ({ description }: { description: string }) => {
@@ -6,7 +6,7 @@ const TaskListDescriptionCell = ({ description }: { description: string }) => {
 
   return (
     <Typography.Paragraph
-      ellipsis={{ 
+      ellipsis={{
         expandable: false,
         rows: 1,
         tooltip: description,

@@ -1,4 +1,4 @@
-import { Col, ConfigProvider, Layout } from 'antd';
+import { Col, ConfigProvider, Layout } from '@/shared/antd-imports';
 import { useEffect, useState } from 'react';
 import Navbar from '../features/navbar/navbar';
 import { useAppSelector } from '../hooks/useAppSelector';
@@ -22,11 +22,7 @@ const ReportingLayout = () => {
   const currentSession = getCurrentSession();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (currentSession?.is_expired) {
-      navigate('/worklenz/license-expired');
-    }
-  }, [currentSession, navigate]);
+  
 
   // function to handle collapse
   const handleCollapsedToggler = () => {

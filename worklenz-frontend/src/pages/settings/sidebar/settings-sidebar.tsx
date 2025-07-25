@@ -1,5 +1,5 @@
-import { RightOutlined } from '@ant-design/icons';
-import { ConfigProvider, Flex, Menu, MenuProps } from 'antd';
+import { RightOutlined } from '@/shared/antd-imports';
+import { ConfigProvider, Flex, Menu, MenuProps } from '@/shared/antd-imports';
 import { Link, useLocation } from 'react-router-dom';
 import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ const SettingSidebar: React.FC = () => {
   const items: Required<MenuProps>['items'] = accessibleSettings
     .map(item => {
       if (currentSession?.is_google && item.key === 'change-password') {
-        return undefined;
+        return null;
       }
       return {
         key: item.key,
@@ -39,7 +39,7 @@ const SettingSidebar: React.FC = () => {
         ),
       };
     })
-    .filter(Boolean);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
   return (
     <ConfigProvider
@@ -58,8 +58,8 @@ const SettingSidebar: React.FC = () => {
         items={items}
         selectedKeys={[getCurrentActiveKey()]}
         mode="vertical"
-        style={{ 
-          border: 'none', 
+        style={{
+          border: 'none',
           width: '100%',
         }}
       />

@@ -1,7 +1,7 @@
-import { GlobalOutlined, LeftCircleOutlined, RightCircleOutlined } from '@ant-design/icons';
+import { GlobalOutlined, LeftCircleOutlined, RightCircleOutlined } from '@/shared/antd-imports';
 import React, { useEffect, useState } from 'react';
 import { colors } from '@/styles/colors';
-import { Button, Flex, Tooltip, Typography } from 'antd';
+import { Button, Flex, Tooltip, Typography } from '@/shared/antd-imports';
 import { themeWiseColor } from '@utils/themeWiseColor';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useTranslation } from 'react-i18next';
@@ -40,7 +40,6 @@ const ReportingCollapsedButton = ({
     }
   };
 
-  
   useEffect(() => {
     getOrganizationDetails();
   }, []);
@@ -66,7 +65,7 @@ const ReportingCollapsedButton = ({
             />
 
             <Typography.Text strong>
-            {loading ? 'Loading...' : organization?.name || 'Unknown Organization'}
+              {loading ? 'Loading...' : organization?.name || 'Unknown Organization'}
             </Typography.Text>
           </Flex>
         </Tooltip>

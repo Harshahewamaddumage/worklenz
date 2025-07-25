@@ -1,7 +1,6 @@
-import { Badge, Button, Collapse, ConfigProvider, Dropdown, Flex, Input, Typography } from 'antd';
+import { Badge, Button, Collapse, ConfigProvider, Dropdown, Flex, Input, Typography } from '@/shared/antd-imports';
 import { useState } from 'react';
-import { TaskType } from '../../../../../types/task.types';
-import { EditOutlined, EllipsisOutlined, RetweetOutlined, RightOutlined } from '@ant-design/icons';
+import { EditOutlined, EllipsisOutlined, RetweetOutlined, RightOutlined } from '@/shared/antd-imports';
 import { colors } from '../../../../../styles/colors';
 import './taskListTableWrapper.css';
 import TaskListTable from './TaskListTable';
@@ -194,7 +193,7 @@ const TaskListTableWrapper = ({
         </Flex>
         <Collapse
           collapsible="header"
-          className="border-l-[4px]"
+          className="border-l-4"
           bordered={false}
           ghost={true}
           expandIcon={() => null}

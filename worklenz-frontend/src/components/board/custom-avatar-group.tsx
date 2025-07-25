@@ -1,4 +1,4 @@
-import { Button, Flex } from 'antd';
+import { Button, Flex } from '@/shared/antd-imports';
 import AddMembersDropdown from '@/components/add-members-dropdown/add-members-dropdown';
 import Avatars from '../avatars/avatars';
 import { IProjectTask } from '@/types/project/projectTasksViewModel.types';
@@ -14,7 +14,7 @@ const CustomAvatarGroup = ({ task, sectionId }: CustomAvatarGroupProps) => {
     <Flex
       gap={4}
       align="center"
-      onClick={(e) => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
       style={{
         borderRadius: 4,
         cursor: 'pointer',

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Result } from 'antd';
+import { Button, Result } from '@/shared/antd-imports';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import logger from '@/utils/errorLogger';
@@ -27,7 +27,7 @@ class ErrorBoundary extends React.Component<Props, State> {
     logger.error('Error caught by ErrorBoundary:', {
       error: error.message,
       stack: error.stack,
-      componentStack: errorInfo.componentStack
+      componentStack: errorInfo.componentStack,
     });
     console.error('Error caught by ErrorBoundary:', error);
   }
@@ -70,4 +70,4 @@ const ErrorFallback: React.FC<{ error?: Error }> = ({ error }) => {
   );
 };
 
-export default ErrorBoundary; 
+export default ErrorBoundary;

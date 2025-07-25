@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@/shared/antd-imports';
 import {
   Badge,
   Button,
@@ -12,7 +12,7 @@ import {
   InputRef,
   List,
   Typography,
-} from 'antd';
+} from '@/shared/antd-imports';
 import React, { useMemo, useRef, useState } from 'react';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { colors } from '@/styles/colors';
@@ -44,9 +44,7 @@ const LabelsSelector = ({ taskId, labels }: LabelsSelectorProps) => {
 
   // used useMemo hook for re-render the list when searching
   const filteredLabelData = useMemo(() => {
-    return labels.filter(label =>
-      label.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    return labels.filter(label => label.name?.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [labels, searchQuery]);
 
   const handleCreateLabel = (name: string) => {
@@ -105,9 +103,7 @@ const LabelsSelector = ({ taskId, labels }: LabelsSelectorProps) => {
                   id={label.id}
                   checked={
                     selectedTask?.labels
-                      ? selectedTask?.labels.some(
-                          existingLabel => existingLabel.id === label.id
-                        )
+                      ? selectedTask?.labels.some(existingLabel => existingLabel.id === label.id)
                       : false
                   }
                   onChange={() => console.log(123)}

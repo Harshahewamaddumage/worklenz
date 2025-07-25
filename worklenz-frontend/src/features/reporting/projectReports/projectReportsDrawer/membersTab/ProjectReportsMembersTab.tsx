@@ -1,4 +1,4 @@
-import { Flex } from 'antd';
+import { Flex } from '@/shared/antd-imports';
 import { useEffect, useMemo, useState } from 'react';
 import CustomSearchbar from '../../../../../components/CustomSearchbar';
 import ProjectReportsMembersTable from './ProjectReportsMembersTable';
@@ -23,7 +23,7 @@ const ProjectReportsMembersTab = ({ projectId = null }: ProjectReportsMembersTab
 
   const fetchMembersData = async () => {
     if (!projectId || loading) return;
-    
+
     try {
       setLoading(true);
       const res = await reportingProjectsApiService.getProjectMembers(projectId);

@@ -1,6 +1,6 @@
 import { TaskType } from '@/types/task.types';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { Flex } from 'antd';
+import { Flex } from '@/shared/antd-imports';
 import TaskListTableWrapper from '@/pages/projects/project-view-1/taskList/taskListTable/TaskListTableWrapper';
 import { createPortal } from 'react-dom';
 import BulkTasksActionContainer from '@/features/projects/bulkActions/BulkTasksActionContainer';
@@ -47,10 +47,10 @@ const StatusGroupTables = ({ group }: { group: ITaskListGroup }) => {
       {/* bulk action container ==> used tailwind to recreate the animation */}
       {createPortal(
         <div
-          className={`absolute bottom-0 left-1/2 z-20 -translate-x-1/2 ${selectedTaskIdsList.length > 0 ? 'overflow-visible' : 'h-[1px] overflow-hidden'}`}
+          className={`absolute bottom-0 left-1/2 z-20 -translate-x-1/2 ${selectedTaskIdsList.length > 0 ? 'overflow-visible' : 'h-px overflow-hidden'}`}
         >
           <div
-            className={`${selectedTaskIdsList.length > 0 ? 'bottom-4' : 'bottom-0'} absolute left-1/2 z-[999] -translate-x-1/2 transition-all duration-300`}
+            className={`${selectedTaskIdsList.length > 0 ? 'bottom-4' : 'bottom-0'} absolute left-1/2 z-999 -translate-x-1/2 transition-all duration-300`}
           >
             <BulkTasksActionContainer
               selectedTaskIds={selectedTaskIdsList}

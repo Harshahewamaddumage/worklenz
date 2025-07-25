@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CaretDownFilled } from '@ant-design/icons';
+import { CaretDownFilled } from '@/shared/antd-imports';
 import { ConfigProvider, Flex, Dropdown, Button } from 'antd/es';
 import { useSearchParams } from 'react-router-dom';
 
@@ -45,7 +45,7 @@ const GroupByFilterDropdown = () => {
 
   const handleGroupChange = (key: string) => {
     const group = key as IGroupBy;
-    
+
     if (projectView === 'list') {
       setCurrentGroup(group);
       dispatch(setGroup(group));
@@ -64,7 +64,7 @@ const GroupByFilterDropdown = () => {
         trigger={['click']}
         menu={{
           items,
-          onClick: (info) => handleGroupChange(info.key),
+          onClick: info => handleGroupChange(info.key),
           selectedKeys: [currentGroup],
         }}
       >
@@ -72,13 +72,13 @@ const GroupByFilterDropdown = () => {
           {selectedLabel} <CaretDownFilled />
         </Button>
       </Dropdown>
-      
-      {(currentGroup === IGroupBy.STATUS || currentGroup === IGroupBy.PHASE) && (isOwnerOrAdmin || isProjectManager) && (
-        <ConfigProvider wave={{ disabled: true }}>
-          {currentGroup === IGroupBy.PHASE && <ConfigPhaseButton />}
-          {currentGroup === IGroupBy.STATUS && <CreateStatusButton />}
-        </ConfigProvider>
-      )}
+      {(currentGroup === IGroupBy.STATUS || currentGroup === IGroupBy.PHASE) &&
+        (isOwnerOrAdmin || isProjectManager) && (
+          <ConfigProvider wave={{ disabled: true }}>
+            {currentGroup === IGroupBy.PHASE && <ConfigPhaseButton />}
+            {currentGroup === IGroupBy.STATUS && <CreateStatusButton />}
+          </ConfigProvider>
+        )}
     </Flex>
   );
 };

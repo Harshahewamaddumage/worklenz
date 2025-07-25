@@ -1,10 +1,10 @@
-import { Flex, Typography, Button, Tooltip } from 'antd';
+import { Flex, Typography, Button, Tooltip } from '@/shared/antd-imports';
 import {
   DoubleRightOutlined,
   DownOutlined,
   RightOutlined,
   ExpandAltOutlined,
-} from '@ant-design/icons';
+} from '@/shared/antd-imports';
 import { NewTaskType, toggleTaskExpansion } from '@features/roadmap/roadmap-slice';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { toggleTaskDrawer } from '@features/tasks/taskSlice';
@@ -24,7 +24,7 @@ const RoadmapTaskCell = ({ task, isSubtask = false }: RoadmapTaskCellProps) => {
     return (
       <button
         onClick={() => dispatch(toggleTaskExpansion(id))}
-        className="hover flex h-4 w-4 items-center justify-center rounded text-[12px] hover:border hover:border-[#5587f5] hover:bg-[#d0eefa54]"
+        className="hover flex h-4 w-4 items-center justify-center rounded-sm text-[12px] hover:border hover:border-[#5587f5] hover:bg-[#d0eefa54]"
       >
         {task.isExpanded ? <DownOutlined /> : <RightOutlined />}
       </button>
@@ -36,7 +36,7 @@ const RoadmapTaskCell = ({ task, isSubtask = false }: RoadmapTaskCellProps) => {
     return !isSubtask ? (
       <button
         onClick={() => dispatch(toggleTaskExpansion(id))}
-        className="hover flex h-4 w-4 items-center justify-center rounded text-[12px] hover:border hover:border-[#5587f5] hover:bg-[#d0eefa54]"
+        className="hover flex h-4 w-4 items-center justify-center rounded-sm text-[12px] hover:border hover:border-[#5587f5] hover:bg-[#d0eefa54]"
       >
         {task.isExpanded ? <DownOutlined /> : <RightOutlined />}
       </button>

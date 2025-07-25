@@ -1,4 +1,4 @@
-import { Tag, Tooltip } from 'antd';
+import { Tag, Tooltip } from '@/shared/antd-imports';
 
 interface ICustomNumberLabelProps {
   labelList: string[];
@@ -9,7 +9,6 @@ const CustomNumberLabel = ({ labelList, namesString }: ICustomNumberLabelProps) 
   return (
     <Tooltip title={labelList.join(', ')}>
       <Tag
-
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -21,7 +20,6 @@ const CustomNumberLabel = ({ labelList, namesString }: ICustomNumberLabelProps) 
         {namesString}
       </Tag>
     </Tooltip>
-
   );
 };
 

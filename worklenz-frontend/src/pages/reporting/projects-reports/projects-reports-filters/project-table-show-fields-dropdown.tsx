@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { MoreOutlined } from '@ant-design/icons';
-import { Button, Card, Checkbox, Dropdown, List, Space } from 'antd';
+import { MoreOutlined } from '@/shared/antd-imports';
+import { Button, Card, Checkbox, Dropdown, List, Space } from '@/shared/antd-imports';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { toggleColumnHidden } from '@/features/reporting/projectReports/project-reports-table-column-slice/project-reports-table-column-slice';
@@ -35,11 +35,7 @@ const ProjectTableShowFieldsDropdown = () => {
   };
 
   return (
-    <Dropdown
-      menu={menuItems}
-      trigger={['click']}
-      onOpenChange={open => setIsDropdownOpen(open)}
-    >
+    <Dropdown menu={menuItems} trigger={['click']} onOpenChange={open => setIsDropdownOpen(open)}>
       <Button
         icon={<MoreOutlined />}
         className={`transition-colors duration-300 ${

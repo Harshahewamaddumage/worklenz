@@ -89,24 +89,24 @@ export const NumbersColorMap: { [x: string]: string } = {
 };
 
 export const PriorityColorCodes: { [x: number]: string; } = {
-  0: "#75c997",
-  1: "#fbc84c",
-  2: "#f37070"
+  0: "#2E8B57",
+  1: "#DAA520",
+  2: "#CD5C5C"
 };
 
 export const PriorityColorCodesDark: { [x: number]: string; } = {
-  0: "#46D980",
-  1: "#FFC227",
-  2: "#FF4141"
+  0: "#3CB371",
+  1: "#B8860B",
+  2: "#F08080"
 };
 
 export const TASK_STATUS_TODO_COLOR = "#a9a9a9";
 export const TASK_STATUS_DOING_COLOR = "#70a6f3";
 export const TASK_STATUS_DONE_COLOR = "#75c997";
 
-export const TASK_PRIORITY_LOW_COLOR = "#75c997";
-export const TASK_PRIORITY_MEDIUM_COLOR = "#fbc84c";
-export const TASK_PRIORITY_HIGH_COLOR = "#f37070";
+export const TASK_PRIORITY_LOW_COLOR = "#2E8B57";
+export const TASK_PRIORITY_MEDIUM_COLOR = "#DAA520";
+export const TASK_PRIORITY_HIGH_COLOR = "#CD5C5C";
 
 export const TASK_DUE_COMPLETED_COLOR = "#75c997";
 export const TASK_DUE_UPCOMING_COLOR = "#70a6f3";
@@ -117,11 +117,11 @@ export const TASK_DUE_NO_DUE_COLOR = "#a9a9a9";
 export const DEFAULT_PAGE_SIZE = 20;
 
 // S3 Credentials
-export const REGION = process.env.AWS_REGION || "us-east-1";
-export const BUCKET = process.env.AWS_BUCKET || "your-bucket-name";
+export const REGION = process.env.S3_REGION || "us-east-1";
+export const BUCKET = process.env.S3_BUCKET || "your-bucket-name";
 export const S3_URL = process.env.S3_URL || "https://your-s3-url";
-export const S3_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || "";
-export const S3_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || "";
+export const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID || "";
+export const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY || "";
 
 // Azure Blob Storage Credentials
 export const STORAGE_PROVIDER = process.env.STORAGE_PROVIDER || "s3";

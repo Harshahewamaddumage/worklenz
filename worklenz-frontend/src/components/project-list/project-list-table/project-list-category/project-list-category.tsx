@@ -1,5 +1,5 @@
 import { IProjectViewModel } from '@/types/project/projectViewModel.types';
-import { Tooltip, Tag } from 'antd';
+import { Tooltip, Tag } from '@/shared/antd-imports';
 import { TFunction } from 'i18next';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { setFilteredCategories, setRequestParams } from '@/features/projects/projectsSlice';
@@ -11,10 +11,8 @@ export const CategoryCell: React.FC<{
   t: TFunction;
 }> = ({ record, t }) => {
   if (!record.category_name) return '-';
-  
-  const { requestParams } = useAppSelector(
-    state => state.projectsReducer
-  );
+
+  const { requestParams } = useAppSelector(state => state.projectsReducer);
   const dispatch = useAppDispatch();
   const newParams: Partial<typeof requestParams> = {};
   const filterByCategory = (categoryId: string | undefined) => {

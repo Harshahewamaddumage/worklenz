@@ -1,5 +1,5 @@
-import { Button, Typography, Tag } from 'antd';
-import { BankOutlined } from '@ant-design/icons';
+import { Button, Typography, Tag } from '@/shared/antd-imports';
+import { BankOutlined } from '@/shared/antd-imports';
 import { IWorklenzNotification } from '@/types/notifications/notifications.types';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
@@ -27,9 +27,9 @@ const NotificationTemplate: React.FC<NotificationTemplateProps> = ({
   const goToUrl = async (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    
+
     console.log('goToUrl triggered', { url: item.url, teamId: item.team_id });
-    
+
     if (item.url) {
       dispatch(toggleDrawer());
 
@@ -92,4 +92,4 @@ const NotificationTemplate: React.FC<NotificationTemplateProps> = ({
   );
 };
 
-export default NotificationTemplate; 
+export default NotificationTemplate;

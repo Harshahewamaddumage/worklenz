@@ -2,7 +2,7 @@ import { SocketEvents } from '@/shared/socket-events';
 import { useSocket } from '@/socket/socketContext';
 import { colors } from '@/styles/colors';
 import { ITaskViewModel } from '@/types/tasks/task.types';
-import { Flex, Form, FormInstance, InputNumber, Typography } from 'antd';
+import { Flex, Form, FormInstance, InputNumber, Typography } from '@/shared/antd-imports';
 import { TFunction } from 'i18next';
 import { useState } from 'react';
 
@@ -19,11 +19,11 @@ const TaskDrawerEstimation = ({ t, task, form }: TaskDrawerEstimationProps) => {
 
   const handleTimeEstimationBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     if (!connected || !task.id) return;
-    
+
     // Get current form values instead of using state
     const currentHours = form.getFieldValue('hours') || 0;
     const currentMinutes = form.getFieldValue('minutes') || 0;
-    
+
     socket?.emit(
       SocketEvents.TASK_TIME_ESTIMATION_CHANGE.toString(),
       JSON.stringify({
@@ -52,7 +52,7 @@ const TaskDrawerEstimation = ({ t, task, form }: TaskDrawerEstimationProps) => {
           <InputNumber
             min={0}
             max={24}
-            placeholder={t('taskInfoTab.details.hours')}    
+            placeholder={t('taskInfoTab.details.hours')}
             onBlur={handleTimeEstimationBlur}
             onChange={value => setHours(value || 0)}
           />

@@ -1,7 +1,7 @@
-import { Avatar, Checkbox, DatePicker, Flex, Select, Tag } from 'antd';
+import { Avatar, Checkbox, DatePicker, Flex, Select, Tag } from '@/shared/antd-imports';
 import { createColumnHelper, ColumnDef } from '@tanstack/react-table';
 import { IProjectTask } from '@/types/project/projectTasksViewModel.types';
-import { HolderOutlined, PlusOutlined } from '@ant-design/icons';
+import { HolderOutlined, PlusOutlined } from '@/shared/antd-imports';
 import StatusDropdown from '@/components/task-list-common/status-dropdown/status-dropdown';
 import Avatars from '@/components/avatars/avatars';
 import LabelsSelector from '@/components/task-list-common/labelsSelector/labels-selector';
@@ -111,6 +111,24 @@ export const createColumns = ({
       ),
     }),
 
+    columnHelper.accessor('status', {
+      header: 'Status',
+      id: COLUMN_KEYS.STATUS,
+      size: 120,
+      enablePinning: false,
+      cell: ({ row }) => (
+        <StatusDropdown
+          key={`${row.original.id}-status`}
+          statusList={statuses}
+          task={row.original}
+          teamId={getCurrentSession()?.team_id || ''}
+          onChange={statusId => {
+            console.log('Status changed:', statusId);
+          }}
+        />
+      ),
+    }),
+
     columnHelper.accessor('names', {
       header: 'Assignees',
       id: COLUMN_KEYS.ASSIGNEES,
@@ -161,24 +179,6 @@ export const createColumns = ({
       size: 120,
       enablePinning: false,
       cell: ({ row }) => <TaskRowDueTime dueTime={row.original.due_time || ''} />,
-    }),
-
-    columnHelper.accessor('status', {
-      header: 'Status',
-      id: COLUMN_KEYS.STATUS,
-      size: 120,
-      enablePinning: false,
-      cell: ({ row }) => (
-        <StatusDropdown
-          key={`${row.original.id}-status`}
-          statusList={statuses}
-          task={row.original}
-          teamId={getCurrentSession()?.team_id || ''}
-          onChange={statusId => {
-            console.log('Status changed:', statusId);
-          }}
-        />
-      ),
     }),
 
     columnHelper.accessor('labels', {

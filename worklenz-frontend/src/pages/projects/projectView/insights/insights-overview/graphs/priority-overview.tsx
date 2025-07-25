@@ -1,7 +1,7 @@
 import { Bar } from 'react-chartjs-2';
 import { Chart, ArcElement, Tooltip, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { ChartOptions } from 'chart.js';
-import { Flex } from 'antd';
+import { Flex } from '@/shared/antd-imports';
 import { ITaskPriorityCounts } from '@/types/project/project-insights.types';
 import { useEffect, useState } from 'react';
 import { projectInsightsApiService } from '@/api/projects/insights/project-insights.api.service';
@@ -16,7 +16,6 @@ const PriorityOverview = () => {
   const [stats, setStats] = useState<ITaskPriorityCounts[]>([]);
   const [loading, setLoading] = useState(false);
   const { refreshTimestamp } = useAppSelector(state => state.projectReducer);
-
 
   const getTaskPriorityCounts = async () => {
     if (!projectId) return;

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Form, Input, Button, Typography, List, InputRef } from 'antd';
-import { PlusOutlined, DeleteOutlined, CloseCircleOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Typography, List, InputRef } from '@/shared/antd-imports';
+import { PlusOutlined, DeleteOutlined, CloseCircleOutlined } from '@/shared/antd-imports';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { RootState } from '@/app/store';
@@ -39,7 +39,9 @@ export const TasksStep: React.FC<Props> = ({ onEnter, styles, isDarkMode }) => {
 
   const updateTask = (id: number, value: string) => {
     const sanitizedValue = sanitizeInput(value);
-    dispatch(setTasks(tasks.map(task => (task.id === id ? { ...task, value: sanitizedValue } : task))));
+    dispatch(
+      setTasks(tasks.map(task => (task.id === id ? { ...task, value: sanitizedValue } : task)))
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {

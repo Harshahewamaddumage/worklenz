@@ -1,5 +1,5 @@
-import { CaretDownFilled } from '@ant-design/icons';
-import { Button, Card, Checkbox, Dropdown, List, Space } from 'antd';
+import { CaretDownFilled } from '@/shared/antd-imports';
+import { Button, Card, Checkbox, Dropdown, List, Space } from '@/shared/antd-imports';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -42,13 +42,16 @@ const BillableFilter = ({ billable, onBillableChange }: BillableFilterProps) => 
             }}
           >
             <Space>
-              <Checkbox 
-                id={item.key} 
-                checked={billable[item.key as keyof typeof billable]} 
-                onChange={() => onBillableChange({ 
-                  ...billable, 
-                  [item.key as keyof typeof billable]: !billable[item.key as keyof typeof billable] 
-                })} 
+              <Checkbox
+                id={item.key}
+                checked={billable[item.key as keyof typeof billable]}
+                onChange={() =>
+                  onBillableChange({
+                    ...billable,
+                    [item.key as keyof typeof billable]:
+                      !billable[item.key as keyof typeof billable],
+                  })
+                }
               />
               {t(`${item.key}Text`)}
             </Space>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ViewMode } from 'gantt-task-react';
 import 'gantt-task-react/dist/index.css';
 import './project-view-roadmap.css';
-import { Flex } from 'antd';
+import { Flex } from '@/shared/antd-imports';
 import { useAppSelector } from '../../../../hooks/useAppSelector';
 import { TimeFilter } from './time-filter';
 import RoadmapTable from './roadmap-table/roadmap-table';
@@ -21,7 +21,7 @@ const ProjectViewRoadmap = () => {
 
       <Flex>
         {/* table */}
-        <div className="after:content relative h-fit w-full max-w-[500px] after:absolute after:-right-3 after:top-0 after:z-10 after:min-h-full after:w-3 after:bg-gradient-to-r after:from-[rgba(0,0,0,0.12)] after:to-transparent">
+        <div className="after:content relative h-fit w-full max-w-[500px] after:absolute after:-right-3 after:top-0 after:z-10 after:min-h-full after:w-3 after:bg-linear-to-r after:from-[rgba(0,0,0,0.12)] after:to-transparent">
           <RoadmapTable />
         </div>
 

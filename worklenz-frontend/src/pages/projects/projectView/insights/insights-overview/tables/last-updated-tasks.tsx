@@ -1,4 +1,4 @@
-import { Flex, Table, Tooltip, Typography } from 'antd';
+import { Flex, Table, Tooltip, Typography } from '@/shared/antd-imports';
 import { useEffect, useState } from 'react';
 import { colors } from '@/styles/colors';
 import { TableProps } from 'antd/lib';
@@ -17,7 +17,6 @@ const LastUpdatedTasks = () => {
   const [data, setData] = useState<IInsightTasks[]>([]);
   const [loading, setLoading] = useState(false);
   const { refreshTimestamp } = useAppSelector(state => state.projectReducer);
-
 
   const getLastUpdatedTasks = async () => {
     if (!projectId) return;
@@ -39,7 +38,7 @@ const LastUpdatedTasks = () => {
 
   useEffect(() => {
     getLastUpdatedTasks();
-  }, [projectId, includeArchivedTasks,refreshTimestamp]);
+  }, [projectId, includeArchivedTasks, refreshTimestamp]);
 
   // table columns
   const columns: TableProps['columns'] = [

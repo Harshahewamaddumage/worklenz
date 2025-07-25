@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart, ArcElement } from 'chart.js';
-import { Badge, Flex, Tooltip, Typography, Spin } from 'antd';
+import { Badge, Flex, Tooltip, Typography, Spin } from '@/shared/antd-imports';
 import { ChartOptions } from 'chart.js';
 import { projectInsightsApiService } from '@/api/projects/insights/project-insights.api.service';
 import { ITaskStatusCounts } from '@/types/project/project-insights.types';
@@ -15,7 +15,6 @@ const StatusOverview = () => {
   const [stats, setStats] = useState<ITaskStatusCounts[]>([]);
   const [loading, setLoading] = useState(false);
   const { refreshTimestamp } = useAppSelector(state => state.projectReducer);
-  
 
   const getTaskStatusCounts = async () => {
     if (!projectId) return;
@@ -38,7 +37,7 @@ const StatusOverview = () => {
 
   useEffect(() => {
     getTaskStatusCounts();
-  }, [projectId, includeArchivedTasks,refreshTimestamp]);
+  }, [projectId, includeArchivedTasks, refreshTimestamp]);
 
   const options: ChartOptions<'doughnut'> = {
     responsive: true,

@@ -1,4 +1,4 @@
-import { Drawer, Typography } from 'antd';
+import { Drawer, Typography } from '@/shared/antd-imports';
 import React, { useEffect, useState } from 'react';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
@@ -44,7 +44,7 @@ const MembersOverviewProjectsStatsDrawer = ({
           archived: false,
         };
         const response = await reportingApiService.getSingleMemberProjects(body);
-        if (response.done){
+        if (response.done) {
           setProjectsData(response.body.projects || []);
         } else {
           setProjectsData([]);
@@ -74,10 +74,7 @@ const MembersOverviewProjectsStatsDrawer = ({
         )
       }
     >
-      <MembersOverviewProjectsStatsTable 
-        projectList={projectsData}
-        loading={loading}
-      />
+      <MembersOverviewProjectsStatsTable projectList={projectsData} loading={loading} />
     </Drawer>
   );
 };

@@ -1,9 +1,9 @@
-import { TabsProps, Tabs, Button } from 'antd';
+import { TabsProps, Tabs, Button } from '@/shared/antd-imports';
 import Drawer from 'antd/es/drawer';
 import { InputRef } from 'antd/es/input';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, CloseOutlined, ArrowLeftOutlined } from '@/shared/antd-imports';
 
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
@@ -13,6 +13,7 @@ import {
   setTaskFormViewModel,
   setTaskSubscribers,
   setTimeLogEditing,
+  fetchTask,
 } from '@/features/task-drawer/task-drawer.slice';
 
 import './task-drawer.css';
@@ -24,7 +25,7 @@ import TimeLogForm from './shared/time-log/time-log-form';
 import { DEFAULT_TASK_NAME } from '@/shared/constants';
 import useTaskDrawerUrlSync from '@/hooks/useTaskDrawerUrlSync';
 import InfoTabFooter from './shared/info-tab/info-tab-footer';
-import { Flex } from 'antd';
+import { Flex } from '@/shared/antd-imports';
 
 const TaskDrawer = () => {
   const { t } = useTranslation('task-drawer/task-drawer');
@@ -32,7 +33,8 @@ const TaskDrawer = () => {
   const [refreshTimeLogTrigger, setRefreshTimeLogTrigger] = useState(0);
 
   const { showTaskDrawer, timeLogEditing } = useAppSelector(state => state.taskDrawerReducer);
-
+  const { taskFormViewModel, selectedTaskId } = useAppSelector(state => state.taskDrawerReducer);
+  const { projectId } = useAppSelector(state => state.projectReducer);
   const taskNameInputRef = useRef<InputRef>(null);
   const isClosingManually = useRef(false);
 
@@ -47,20 +49,41 @@ const TaskDrawer = () => {
 
   const dispatch = useAppDispatch();
 
-  const handleOnClose = () => {
-    // Set flag to indicate we're manually closing the drawer
-    isClosingManually.current = true;
-    setActiveTab('info');
-
-    // Explicitly clear the task parameter from URL
-    clearTaskFromUrl();
-
-    // Update the Redux state
+  const resetTaskState = () => {
     dispatch(setShowTaskDrawer(false));
     dispatch(setSelectedTaskId(null));
     dispatch(setTaskFormViewModel({}));
     dispatch(setTaskSubscribers([]));
+  };
 
+  const handleBackToParent = () => {
+    if (taskFormViewModel?.task?.parent_task_id && projectId) {
+      // Navigate to parent task
+      dispatch(setSelectedTaskId(taskFormViewModel.task.parent_task_id));
+      dispatch(fetchTask({ 
+        taskId: taskFormViewModel.task.parent_task_id, 
+        projectId 
+      }));
+    }
+  };
+
+  const handleOnClose = (
+    e?: React.MouseEvent<Element, MouseEvent> | React.KeyboardEvent<Element>
+  ) => {
+    // Set flag to indicate we're manually closing the drawer
+    isClosingManually.current = true;
+    setActiveTab('info');
+    clearTaskFromUrl();
+
+    const isClickOutsideDrawer =
+      e?.target && (e.target as HTMLElement).classList.contains('ant-drawer-mask');
+
+    if (isClickOutsideDrawer || !taskFormViewModel?.task?.is_sub_task) {
+      resetTaskState();
+    } else {
+      // For sub-tasks, navigate to parent instead of closing
+      handleBackToParent();
+    }
     // Reset the flag after a short delay
     setTimeout(() => {
       isClosingManually.current = false;
@@ -142,7 +165,7 @@ const TaskDrawer = () => {
               onClick={handleAddTimeLog}
               style={{ width: '100%' }}
             >
-              Add new time log
+              {t('taskTimeLogTab.addTimeLog')}
             </Button>
           </Flex>
         );
@@ -176,8 +199,8 @@ const TaskDrawer = () => {
   // Get conditional body style
   const getBodyStyle = () => {
     const baseStyle = {
-      padding: '24px', 
-      overflow: 'auto'
+      padding: '24px',
+      overflow: 'auto',
     };
 
     if (activeTab === 'timeLog' && timeLogEditing.isEditing) {
@@ -193,6 +216,17 @@ const TaskDrawer = () => {
     };
   };
 
+  // Check if current task is a sub-task
+  const isSubTask = taskFormViewModel?.task?.is_sub_task || !!taskFormViewModel?.task?.parent_task_id;
+
+  // Custom close icon based on whether it's a sub-task
+  const getCloseIcon = () => {
+    if (isSubTask) {
+      return <ArrowLeftOutlined />;
+    }
+    return <CloseOutlined />;
+  };
+
   const drawerProps = {
     open: showTaskDrawer,
     onClose: handleOnClose,
@@ -203,6 +237,7 @@ const TaskDrawer = () => {
     footer: renderFooter(),
     bodyStyle: getBodyStyle(),
     footerStyle: getFooterStyle(),
+    closeIcon: getCloseIcon(),
   };
 
   return (
@@ -210,7 +245,7 @@ const TaskDrawer = () => {
       <Tabs
         type="card"
         items={tabItems}
-        destroyInactiveTabPane
+        destroyOnHidden
         onChange={handleTabChange}
         activeKey={activeTab}
       />

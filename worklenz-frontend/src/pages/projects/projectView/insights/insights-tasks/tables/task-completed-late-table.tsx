@@ -1,4 +1,4 @@
-import { Flex, Table, Typography } from 'antd';
+import { Flex, Table, Typography } from '@/shared/antd-imports';
 import { useEffect, useState } from 'react';
 import { colors } from '@/styles/colors';
 import { TableProps } from 'antd/lib';
@@ -18,7 +18,6 @@ const TaskCompletedLateTable = ({
   const [lateCompletedTaskList, setLateCompletedTaskList] = useState<IInsightTasks[]>([]);
   const [loading, setLoading] = useState(true);
   const { refreshTimestamp } = useAppSelector(state => state.projectReducer);
-  
 
   const getLateCompletedTasks = async () => {
     try {
@@ -39,7 +38,7 @@ const TaskCompletedLateTable = ({
 
   useEffect(() => {
     getLateCompletedTasks();
-  }, [projectId, includeArchivedTasks,refreshTimestamp]);
+  }, [projectId, includeArchivedTasks, refreshTimestamp]);
 
   // table columns
   const columns: TableProps['columns'] = [

@@ -1,5 +1,5 @@
-import { DownloadOutlined, PlayCircleFilled, PlusOutlined } from '@ant-design/icons';
-import { Button, Divider, Flex, Skeleton, Typography } from 'antd';
+import { DownloadOutlined } from '@/shared/antd-imports';
+import { Button, Divider, Flex, Skeleton, Typography } from '@/shared/antd-imports';
 import { useEffect, useState, useCallback } from 'react';
 import { TFunction } from 'i18next';
 
@@ -49,7 +49,7 @@ const TaskDrawerTimeLog = ({ t, refreshTrigger = 0 }: TaskDrawerTimeLogProps) =>
 
     for (const log of logs) {
       const timeSpentInSeconds = Number(log.time_spent || '0');
-      
+
       // Calculate hours, minutes, seconds for individual time log
       const hours = Math.floor(timeSpentInSeconds / 3600);
       const minutes = Math.floor((timeSpentInSeconds % 3600) / 60);

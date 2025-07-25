@@ -1,4 +1,4 @@
-import { Button, Dropdown } from 'antd';
+import { Button, Dropdown } from '@/shared/antd-imports';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { ILanguageType, setLanguage } from './localesSlice';
@@ -17,6 +17,7 @@ const LanguageSelector = () => {
     { key: 'pt', label: 'Português' },
     { key: 'alb', label: 'Shqip' },
     { key: 'de', label: 'Deutsch' },
+    { key: 'zh_cn', label: '简体中文' },
   ];
 
   const languageLabels = {
@@ -25,6 +26,7 @@ const LanguageSelector = () => {
     pt: 'Pt',
     alb: 'Sq',
     de: 'de',
+    zh_cn: 'zh_cn',
   };
 
   return (

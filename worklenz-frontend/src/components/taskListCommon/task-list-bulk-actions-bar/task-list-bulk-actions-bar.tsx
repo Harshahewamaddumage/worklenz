@@ -10,7 +10,7 @@ import {
   DeleteOutlined,
   MoreOutlined,
   CloseCircleOutlined,
-} from '@ant-design/icons';
+} from '@/shared/antd-imports';
 
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
@@ -247,7 +247,7 @@ const TaskListBulkActionsBar = () => {
         project_id: projectId,
         members: selectedAssignees.map(member => ({
           id: member.id,
-          name: member.name,
+          name: member.name || '',
           email: member.email,
           avatar_url: member.avatar_url,
         })) as ITaskAssignee[],
@@ -437,7 +437,6 @@ const TaskListBulkActionsBar = () => {
                 placement="top"
                 arrow
                 trigger={['click']}
-                destroyPopupOnHide
                 onOpenChange={value => {
                   if (!value) {
                     setSelectedLabels([]);

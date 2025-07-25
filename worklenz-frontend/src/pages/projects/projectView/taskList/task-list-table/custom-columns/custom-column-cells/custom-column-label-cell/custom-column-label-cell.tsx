@@ -1,20 +1,20 @@
-import { Badge, Card, Dropdown, Empty, Flex, Menu, MenuProps, Typography } from 'antd';
+import { Badge, Card, Dropdown, Empty, Flex, Menu, MenuProps, Typography } from '@/shared/antd-imports';
 import React, { useState, useEffect } from 'react';
-import { DownOutlined } from '@ant-design/icons';
+import { DownOutlined } from '@/shared/antd-imports';
 // custom css file
 import './custom-column-label-cell.css';
 import { useTranslation } from 'react-i18next';
 import { colors } from '../../../../../../../../styles/colors';
 import { ITaskLabel } from '@/types/tasks/taskLabel.types';
 
-const CustomColumnLabelCell = ({ 
-  labelsList, 
+const CustomColumnLabelCell = ({
+  labelsList,
   selectedLabels = [],
-  onChange
-}: { 
-  labelsList: ITaskLabel[],
-  selectedLabels?: string[],
-  onChange?: (labels: string[]) => void
+  onChange,
+}: {
+  labelsList: ITaskLabel[];
+  selectedLabels?: string[];
+  onChange?: (labels: string[]) => void;
 }) => {
   const [currentLabelOption, setCurrentLabelOption] = useState<ITaskLabel | null>(null);
 

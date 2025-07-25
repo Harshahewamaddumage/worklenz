@@ -1,7 +1,7 @@
-import { Badge, Flex, Table, TableColumnsType, Tag, Typography } from 'antd';
+import { Badge, Flex, Table, TableColumnsType, Tag, Typography } from '@/shared/antd-imports';
 import React from 'react';
 import dayjs from 'dayjs';
-import { DoubleRightOutlined } from '@ant-design/icons';
+import { DoubleRightOutlined } from '@/shared/antd-imports';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { setSelectedTaskId, setShowTaskDrawer } from '@/features/task-drawer/task-drawer.slice';
 import CustomTableTitle from '@/components/CustomTableTitle';
@@ -13,10 +13,7 @@ type MembersReportsTasksTableProps = {
   loading: boolean;
 };
 
-const MembersReportsTasksTable = ({
-  tasksData,
-  loading,
-}: MembersReportsTasksTableProps) => {
+const MembersReportsTasksTable = ({ tasksData, loading }: MembersReportsTasksTableProps) => {
   // localization
   const { t } = useTranslation('reporting-members-drawer');
 

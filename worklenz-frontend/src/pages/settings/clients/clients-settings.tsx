@@ -3,7 +3,7 @@ import {
   EditOutlined,
   ExclamationCircleFilled,
   SearchOutlined,
-} from '@ant-design/icons';
+} from '@/shared/antd-imports';
 import {
   Button,
   Card,
@@ -14,7 +14,7 @@ import {
   TableProps,
   Tooltip,
   Typography,
-} from 'antd';
+} from '@/shared/antd-imports';
 import { useEffect, useMemo, useState } from 'react';
 import { colors } from '@/styles/colors';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
@@ -126,7 +126,12 @@ const ClientsSettings: React.FC = () => {
                 onConfirm={() => deleteClientHandler(record.id)}
               >
                 <Tooltip title="Delete">
-                  <Button shape="default" icon={<DeleteOutlined />} size="small" onClick={() => deleteClientHandler(record.id)} />
+                  <Button
+                    shape="default"
+                    icon={<DeleteOutlined />}
+                    size="small"
+                    onClick={() => deleteClientHandler(record.id)}
+                  />
                 </Tooltip>
               </Popconfirm>
             </Flex>

@@ -1,4 +1,4 @@
-import { Flex } from 'antd';
+import { Flex } from '@/shared/antd-imports';
 import React, { useEffect, useMemo, useState } from 'react';
 import CustomSearchbar from '@components/CustomSearchbar';
 import GroupByFilter from './group-by-filter';
@@ -31,9 +31,9 @@ const ProjectReportsTasksTab = ({ projectId = null }: ProjectReportsTasksTabProp
       .filter(item => item.tasks.length > 0)
       .map(item => ({
         ...item,
-        tasks: item.tasks.filter(task => 
+        tasks: item.tasks.filter(task =>
           task.name?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        ),
       }))
       .filter(item => item.tasks.length > 0);
   }, [groups, searchQuery]);

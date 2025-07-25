@@ -1,6 +1,6 @@
-import { Badge, Card, Dropdown, Flex, Menu, MenuProps, Typography } from 'antd';
+import { Badge, Card, Dropdown, Flex, Menu, MenuProps, Typography } from '@/shared/antd-imports';
 import { useEffect, useState } from 'react';
-import { DownOutlined } from '@ant-design/icons';
+import { DownOutlined } from '@/shared/antd-imports';
 import { colors } from '@/styles/colors';
 import './project-health-cell.css';
 import { useTranslation } from 'react-i18next';
@@ -47,10 +47,13 @@ const ProjectHealthCell = ({ value, label, color, projectId }: HealthStatusDataT
   const onClick: MenuProps['onClick'] = e => {
     if (!e.key || !projectId) return;
 
-    socket?.emit(SocketEvents.PROJECT_HEALTH_CHANGE.toString(), JSON.stringify({
-      project_id: projectId,
-      health_id: e.key,
-    }));
+    socket?.emit(
+      SocketEvents.PROJECT_HEALTH_CHANGE.toString(),
+      JSON.stringify({
+        project_id: projectId,
+        health_id: e.key,
+      })
+    );
   };
 
   // dropdown items

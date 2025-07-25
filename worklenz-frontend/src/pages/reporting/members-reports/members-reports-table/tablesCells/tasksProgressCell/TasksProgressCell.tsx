@@ -1,4 +1,4 @@
-import { Flex, Tooltip, Typography } from 'antd';
+import { Flex, Tooltip, Typography } from '@/shared/antd-imports';
 import { colors } from '@/styles/colors';
 import { useTranslation } from 'react-i18next';
 
@@ -22,7 +22,6 @@ const TasksProgressCell = ({ tasksStat }: TasksProgressCellProps) => {
     { percent: donePercent, color: '#98d4b1', label: 'done' },
     { percent: doingPercent, color: '#bce3cc', label: 'doing' },
     { percent: todoPercent, color: '#e3f4ea', label: 'todo' },
-
   ];
 
   return (

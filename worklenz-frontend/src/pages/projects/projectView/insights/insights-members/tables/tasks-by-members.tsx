@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Flex, Progress } from 'antd';
+import { Flex, Progress } from '@/shared/antd-imports';
 import { colors } from '@/styles/colors';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { themeWiseColor } from '@/utils/themeWiseColor';
-import { DownOutlined, ExclamationCircleOutlined, RightOutlined } from '@ant-design/icons';
+import { DownOutlined, ExclamationCircleOutlined, RightOutlined } from '@/shared/antd-imports';
 import logger from '@/utils/errorLogger';
 import { projectsApiService } from '@/api/projects/projects.api.service';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +41,7 @@ const TaskByMembersTable = () => {
 
   useEffect(() => {
     getProjectOverviewMembers();
-  }, [projectId,refreshTimestamp]);
+  }, [projectId, refreshTimestamp]);
 
   // toggle members row expansions
   const toggleRowExpansion = (memberId: string) => {
@@ -103,7 +103,7 @@ const TaskByMembersTable = () => {
 
   return (
     <div className="memberList-container min-h-0 max-w-full overflow-x-auto">
-      <table className="w-full min-w-max border-collapse rounded">
+      <table className="w-full min-w-max border-collapse rounded-sm">
         <thead
           style={{
             height: 42,

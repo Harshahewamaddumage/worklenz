@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Button, Card, Checkbox, Flex, Typography } from 'antd';
+import { useEffect, useCallback, useMemo } from 'react';
+import { Button, Card, Checkbox, Flex, Typography } from '@/shared/antd-imports';
 import { useTranslation } from 'react-i18next';
 import { useDocumentTitle } from '@/hooks/useDoumentTItle';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
@@ -25,29 +25,40 @@ const OverviewReports = () => {
     trackMixpanelEvent(evt_reporting_overview);
   }, [trackMixpanelEvent]);
 
-  const handleArchiveToggle = () => {
+  const handleArchiveToggle = useCallback(() => {
     dispatch(toggleIncludeArchived());
-  };
+  }, [dispatch]);
+
+  // Memoize the header children to prevent unnecessary re-renders
+  const headerChildren = useMemo(
+    () => (
+      <Button type="text" onClick={handleArchiveToggle}>
+        <Checkbox checked={includeArchivedProjects} />
+        <Typography.Text>{t('includeArchivedButton')}</Typography.Text>
+      </Button>
+    ),
+    [handleArchiveToggle, includeArchivedProjects, t]
+  );
+
+  // Memoize the teams text to prevent unnecessary re-renders
+  const teamsText = useMemo(
+    () => (
+      <Typography.Text strong style={{ fontSize: 16 }}>
+        {t('teamsText')}
+      </Typography.Text>
+    ),
+    [t]
+  );
 
   return (
     <Flex vertical gap={24}>
-      <CustomPageHeader
-        title={t('overviewTitle')}
-        children={
-          <Button type="text" onClick={handleArchiveToggle}>
-            <Checkbox checked={includeArchivedProjects} />
-            <Typography.Text>{t('includeArchivedButton')}</Typography.Text>
-          </Button>
-        }
-      />
+      <CustomPageHeader title={t('overviewTitle')} children={headerChildren} />
 
       <OverviewStats />
 
       <Card>
         <Flex vertical gap={12}>
-          <Typography.Text strong style={{ fontSize: 16 }}>
-            {t('teamsText')}
-          </Typography.Text>
+          {teamsText}
           <OverviewReportsTable />
         </Flex>
       </Card>

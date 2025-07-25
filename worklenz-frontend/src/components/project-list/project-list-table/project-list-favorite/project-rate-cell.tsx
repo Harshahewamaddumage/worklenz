@@ -7,8 +7,8 @@ import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { colors } from '@/styles/colors';
 import { IProjectViewModel } from '@/types/project/projectViewModel.types';
-import { StarFilled } from '@ant-design/icons';
-import { Button, ConfigProvider, Tooltip } from 'antd';
+import { StarFilled } from '@/shared/antd-imports';
+import { Button, ConfigProvider, Tooltip } from '@/shared/antd-imports';
 import { TFunction } from 'i18next';
 import { useCallback, useMemo } from 'react';
 
@@ -37,7 +37,8 @@ export const ProjectRateCell: React.FC<{
   );
 
   useEffect(() => {
-    setIsFavorite(record.favorite);}, [record.favorite]);
+    setIsFavorite(record.favorite);
+  }, [record.favorite]);
 
   return (
     <ConfigProvider wave={{ disabled: true }}>
@@ -48,7 +49,7 @@ export const ProjectRateCell: React.FC<{
           style={{ backgroundColor: colors.transparent }}
           shape="circle"
           icon={<StarFilled style={{ color: checkIconColor, fontSize: '20px' }} />}
-          onClick={(e) => {
+          onClick={e => {
             e.stopPropagation();
             handleFavorite();
           }}

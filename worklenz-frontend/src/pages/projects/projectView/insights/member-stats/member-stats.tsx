@@ -1,5 +1,5 @@
 import ProjectStatsCard from '@/components/projects/project-stats-card';
-import { Flex } from 'antd';
+import { Flex } from '@/shared/antd-imports';
 import groupIcon from '@/assets/icons/insightsIcons/group.png';
 import warningIcon from '@/assets/icons/insightsIcons/warning.png';
 import unassignedIcon from '@/assets/icons/insightsIcons/block-user.png';
@@ -35,7 +35,7 @@ const MemberStats = () => {
 
   useEffect(() => {
     fetchMemberStats();
-  }, [projectId, includeArchivedTasks,refreshTimestamp]);
+  }, [projectId, includeArchivedTasks, refreshTimestamp]);
 
   return (
     <Flex gap={24} className="grid sm:grid-cols-2 sm:grid-rows-2 lg:grid-cols-3 lg:grid-rows-1">

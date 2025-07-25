@@ -11,7 +11,7 @@ import {
   Spin,
   Tooltip,
   Typography,
-} from 'antd';
+} from '@/shared/antd-imports';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAuthService } from '@/hooks/useAuth';
@@ -65,7 +65,7 @@ const UpdateMemberDrawer = ({ selectedMemberId, onRoleUpdate }: UpdateMemberDraw
         setJobTitles(res.body.data || []);
       }
     } catch (error) {
-      console.error('Error fetching job titles:', error);
+      logger.error('Error fetching job titles:', error);
       message.error(t('jobTitlesFetchError'));
     } finally {
       setLoading(false);

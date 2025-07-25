@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { adminCenterApiService } from '@/api/admin-center/admin-center.api.service';
 import {
   evt_billing_pause_plan,
@@ -7,7 +7,19 @@ import {
 } from '@/shared/worklenz-analytics-events';
 import { useMixpanelTracking } from '@/hooks/useMixpanelTracking';
 import logger from '@/utils/errorLogger';
-import { Button, Card, Flex, Modal, Space, Tooltip, Typography, Statistic, Select, Form, Row, Col } from 'antd/es';
+import {
+  Button,
+  Card,
+  Flex,
+  Modal,
+  Space,
+  Tooltip,
+  Typography,
+  Statistic,
+  Select,
+  Row,
+  Col,
+} from '@/shared/antd-imports';
 import RedeemCodeDrawer from '../drawers/redeem-code-drawer/redeem-code-drawer';
 import {
   fetchBillingInfo,
@@ -17,13 +29,28 @@ import {
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useTranslation } from 'react-i18next';
-import { WarningTwoTone, PlusOutlined } from '@ant-design/icons';
+import { WarningTwoTone, PlusOutlined } from '@/shared/antd-imports';
 import { calculateTimeGap } from '@/utils/calculate-time-gap';
 import { formatDate } from '@/utils/timeUtils';
 import UpgradePlansLKR from '../drawers/upgrade-plans-lkr/upgrade-plans-lkr';
 import UpgradePlans from '../drawers/upgrade-plans/upgrade-plans';
 import { ISUBSCRIPTION_TYPE, SUBSCRIPTION_STATUS } from '@/shared/constants';
 import { billingApiService } from '@/api/admin-center/billing.api.service';
+
+type SubscriptionAction = 'pause' | 'resume';
+type SeatOption = { label: string; value: number | string };
+
+const SEAT_COUNT_LIMIT = '100+';
+const BILLING_DELAY_MS = 8000;
+const LTD_USER_LIMIT = 50;
+const BUTTON_STYLE = {
+  backgroundColor: '#1890ff',
+  borderColor: '#1890ff',
+};
+const STATISTIC_VALUE_STYLE = {
+  fontSize: '24px',
+  fontWeight: 'bold' as const,
+};
 
 const CurrentPlanDetails = () => {
   const dispatch = useAppDispatch();
@@ -34,7 +61,7 @@ const CurrentPlanDetails = () => {
   const [cancellingPlan, setCancellingPlan] = useState(false);
   const [addingSeats, setAddingSeats] = useState(false);
   const [isMoreSeatsModalVisible, setIsMoreSeatsModalVisible] = useState(false);
-  const [selectedSeatCount, setSelectedSeatCount] = useState<number | string>(5);
+  const [selectedSeatCount, setSelectedSeatCount] = useState<number | string>(1);
 
   const themeMode = useAppSelector(state => state.themeReducer.mode);
   const { loadingBillingInfo, billingInfo, freePlanSettings, isUpgradeModalOpen } = useAppSelector(
@@ -42,13 +69,16 @@ const CurrentPlanDetails = () => {
   );
 
   const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
+  const seatCountOptions: SeatOption[] = useMemo(() => {
+    const options: SeatOption[] = [
+      1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90,
+    ].map(value => ({ label: value.toString(), value }));
+    options.push({ label: SEAT_COUNT_LIMIT, value: SEAT_COUNT_LIMIT });
+    return options;
+  }, []);
 
-  type SeatOption = { label: string; value: number | string };
-  const seatCountOptions: SeatOption[] = [1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90]
-    .map(value => ({ label: value.toString(), value }));
-  seatCountOptions.push({ label: '100+', value: '100+' });
-
-  const handleSubscriptionAction = async (action: 'pause' | 'resume') => {
+  const handleSubscriptionAction = useCallback(async (action: SubscriptionAction) => {
     const isResume = action === 'resume';
     const setLoadingState = isResume ? setCancellingPlan : setPausingPlan;
     const apiMethod = isResume
@@ -64,21 +94,21 @@ const CurrentPlanDetails = () => {
           setLoadingState(false);
           dispatch(fetchBillingInfo());
           trackMixpanelEvent(eventType);
-        }, 8000);
-        return; // Exit function to prevent finally block from executing
+        }, BILLING_DELAY_MS);
+        return;
       }
     } catch (error) {
       logger.error(`Error ${action}ing subscription`, error);
-      setLoadingState(false); // Only set to false on error
+      setLoadingState(false);
     }
-  };
+  }, [dispatch, trackMixpanelEvent]);
 
-  const handleAddMoreSeats = () => {
+  const handleAddMoreSeats = useCallback(() => {
     setIsMoreSeatsModalVisible(true);
-  };
+  }, []);
 
-  const handlePurchaseMoreSeats = async () => {
-    if (selectedSeatCount.toString() === '100+' || !billingInfo?.total_seats) return;
+  const handlePurchaseMoreSeats = useCallback(async () => {
+    if (selectedSeatCount.toString() === SEAT_COUNT_LIMIT || !billingInfo?.total_seats) return;
 
     try {
       setAddingSeats(true);
@@ -94,49 +124,75 @@ const CurrentPlanDetails = () => {
     } finally {
       setAddingSeats(false);
     }
-  };
+  }, [selectedSeatCount, billingInfo?.total_seats, dispatch, trackMixpanelEvent]);
 
-  const calculateRemainingSeats = () => {
+  const calculateRemainingSeats = useMemo(() => {
     if (billingInfo?.total_seats && billingInfo?.total_used) {
       return billingInfo.total_seats - billingInfo.total_used;
     }
     return 0;
-  };
+  }, [billingInfo?.total_seats, billingInfo?.total_used]);
 
-  const checkSubscriptionStatus = (allowedStatuses: any[]) => {
+  // Calculate intelligent default for seat selection based on current usage
+  const getDefaultSeatCount = useMemo(() => {
+    const currentUsed = billingInfo?.total_used || 0;
+    const availableSeats = calculateRemainingSeats;
+    
+    // If only 1 user and no available seats, suggest 1 additional seat
+    if (currentUsed === 1 && availableSeats === 0) {
+      return 1;
+    }
+    
+    // If they have some users but running low on seats, suggest enough for current users
+    if (availableSeats < currentUsed && currentUsed > 0) {
+      return Math.max(1, currentUsed - availableSeats);
+    }
+    
+    // Default fallback
+    return Math.max(1, Math.min(5, currentUsed || 1));
+  }, [billingInfo?.total_used, calculateRemainingSeats]);
+
+  // Update selected seat count when billing info changes
+  useEffect(() => {
+    setSelectedSeatCount(getDefaultSeatCount);
+  }, [getDefaultSeatCount]);
+
+  const checkSubscriptionStatus = useCallback((allowedStatuses: string[]) => {
     if (!billingInfo?.status || billingInfo.is_ltd_user) return false;
     return allowedStatuses.includes(billingInfo.status);
-  };
+  }, [billingInfo?.status, billingInfo?.is_ltd_user]);
 
-  const shouldShowRedeemButton = () => {
+  const shouldShowRedeemButton = useMemo(() => {
     if (billingInfo?.trial_in_progress) return true;
-    return billingInfo?.ltd_users ? billingInfo.ltd_users < 50 : false;
-  };
+    return billingInfo?.ltd_users ? billingInfo.ltd_users < LTD_USER_LIMIT : false;
+  }, [billingInfo?.trial_in_progress, billingInfo?.ltd_users]);
 
-  const showChangeButton = () => {
+  const showChangeButton = useMemo(() => {
     return checkSubscriptionStatus([SUBSCRIPTION_STATUS.ACTIVE, SUBSCRIPTION_STATUS.PASTDUE]);
-  };
+  }, [checkSubscriptionStatus]);
 
-  const showPausePlanButton = () => {
+  const showPausePlanButton = useMemo(() => {
     return checkSubscriptionStatus([SUBSCRIPTION_STATUS.ACTIVE, SUBSCRIPTION_STATUS.PASTDUE]);
-  };
+  }, [checkSubscriptionStatus]);
 
-  const showResumePlanButton = () => {
+  const showResumePlanButton = useMemo(() => {
     return checkSubscriptionStatus([SUBSCRIPTION_STATUS.PAUSED]);
-  };
+  }, [checkSubscriptionStatus]);
 
-  const shouldShowAddSeats = () => {
+  const shouldShowAddSeats = useMemo(() => {
     if (!billingInfo) return false;
-    return billingInfo.subscription_type === ISUBSCRIPTION_TYPE.PADDLE && 
-           billingInfo.status === SUBSCRIPTION_STATUS.ACTIVE;
-  };
+    return (
+      billingInfo.subscription_type === ISUBSCRIPTION_TYPE.PADDLE &&
+      billingInfo.status === SUBSCRIPTION_STATUS.ACTIVE
+    );
+  }, [billingInfo]);
 
-  const renderExtra = () => {
+  const renderExtra = useCallback(() => {
     if (!billingInfo || billingInfo.is_custom) return null;
 
     return (
       <Space>
-        {showPausePlanButton() && (
+        {showPausePlanButton && (
           <Button
             type="link"
             danger
@@ -147,7 +203,7 @@ const CurrentPlanDetails = () => {
           </Button>
         )}
 
-        {showResumePlanButton() && (
+        {showResumePlanButton && (
           <Button
             type="primary"
             loading={cancellingPlan}
@@ -163,7 +219,7 @@ const CurrentPlanDetails = () => {
           </Button>
         )}
 
-        {showChangeButton() && (
+        {showChangeButton && (
           <Button
             type="primary"
             loading={pausingPlan || cancellingPlan}
@@ -174,9 +230,19 @@ const CurrentPlanDetails = () => {
         )}
       </Space>
     );
-  };
+  }, [
+    billingInfo,
+    showPausePlanButton,
+    showResumePlanButton,
+    showChangeButton,
+    pausingPlan,
+    cancellingPlan,
+    handleSubscriptionAction,
+    dispatch,
+    t,
+  ]);
 
-  const renderLtdDetails = () => {
+  const renderLtdDetails = useCallback(() => {
     if (!billingInfo || billingInfo.is_custom) return null;
     return (
       <Flex vertical>
@@ -184,41 +250,41 @@ const CurrentPlanDetails = () => {
         <Typography.Text>{t('ltdUsers', { ltd_users: billingInfo.ltd_users })}</Typography.Text>
       </Flex>
     );
-  };
+  }, [billingInfo, t]);
 
-  const renderTrialDetails = () => {
-    const checkIfTrialExpired = () => {
-      if (!billingInfo?.trial_expire_date) return false;
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Set to start of day for comparison
-      const trialExpireDate = new Date(billingInfo.trial_expire_date);
-      trialExpireDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-      return today > trialExpireDate;
-    };
+  const checkIfTrialExpired = useCallback(() => {
+    if (!billingInfo?.trial_expire_date) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const trialExpireDate = new Date(billingInfo.trial_expire_date);
+    trialExpireDate.setHours(0, 0, 0, 0);
+    return today > trialExpireDate;
+  }, [billingInfo?.trial_expire_date]);
 
-    const getExpirationMessage = (expireDate: string) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Set to start of day for comparison
-      
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      const expDate = new Date(expireDate);
-      expDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
-      
-      if (expDate.getTime() === today.getTime()) {
-        return t('expirestoday', 'today');
-      } else if (expDate.getTime() === tomorrow.getTime()) {
-        return t('expirestomorrow', 'tomorrow');
-      } else if (expDate < today) {
-        const diffTime = Math.abs(today.getTime() - expDate.getTime());
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return t('expiredDaysAgo', '{{days}} days ago', { days: diffDays });
-      } else {
-        return calculateTimeGap(expireDate);
-      }
-    };
+  const getExpirationMessage = useCallback((expireDate: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const expDate = new Date(expireDate);
+    expDate.setHours(0, 0, 0, 0);
+
+    if (expDate.getTime() === today.getTime()) {
+      return t('expirestoday', 'today');
+    } else if (expDate.getTime() === tomorrow.getTime()) {
+      return t('expirestomorrow', 'tomorrow');
+    } else if (expDate < today) {
+      const diffTime = Math.abs(today.getTime() - expDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return t('expiredDaysAgo', '{{days}} days ago', { days: diffDays });
+    } else {
+      return calculateTimeGap(expireDate);
+    }
+  }, [t]);
+
+  const renderTrialDetails = useCallback(() => {
     const isExpired = checkIfTrialExpired();
     const trialExpireDate = billingInfo?.trial_expire_date || '';
 
@@ -230,23 +296,22 @@ const CurrentPlanDetails = () => {
         </Typography.Text>
         <Tooltip title={formatDate(new Date(trialExpireDate))}>
           <Typography.Text>
-            {isExpired 
+            {isExpired
               ? t('trialExpired', {
-                  trial_expire_string: getExpirationMessage(trialExpireDate)
+                  trial_expire_string: getExpirationMessage(trialExpireDate),
                 })
               : t('trialInProgress', {
-                  trial_expire_string: getExpirationMessage(trialExpireDate)
-                })
-            }
+                  trial_expire_string: getExpirationMessage(trialExpireDate),
+                })}
           </Typography.Text>
         </Tooltip>
       </Flex>
     );
-  };
+  }, [billingInfo?.trial_expire_date, checkIfTrialExpired, getExpirationMessage, t]);
 
-  const renderFreePlan = () => (
+  const renderFreePlan = useCallback(() => (
     <Flex vertical>
-      <Typography.Text strong>Free Plan</Typography.Text>
+      <Typography.Text strong>{t('freePlan')}</Typography.Text>
       <Typography.Text>
         <br />-{' '}
         {freePlanSettings?.team_member_limit === 0
@@ -256,9 +321,9 @@ const CurrentPlanDetails = () => {
         <br />- {freePlanSettings?.free_tier_storage} MB {t('storage')}
       </Typography.Text>
     </Flex>
-  );
+  ), [freePlanSettings, t]);
 
-  const renderPaddleSubscriptionInfo = () => {
+  const renderPaddleSubscriptionInfo = useCallback(() => {
     return (
       <Flex vertical>
         <Typography.Text strong>{billingInfo?.plan_name}</Typography.Text>
@@ -268,36 +333,35 @@ const CurrentPlanDetails = () => {
             {billingInfo?.billing_type === 'year'
               ? billingInfo.unit_price_per_month
               : billingInfo?.unit_price}
-
             &nbsp;{t('perMonthPerUser')}
           </Typography.Text>
         </Flex>
-        
-        {shouldShowAddSeats() && billingInfo?.total_seats && (
+
+        {shouldShowAddSeats && billingInfo?.total_seats && (
           <div style={{ marginTop: '16px' }}>
             <Row gutter={16} align="middle">
               <Col span={6}>
-                <Statistic 
-                  title={t('totalSeats')} 
-                  value={billingInfo.total_seats} 
-                  valueStyle={{ fontSize: '24px', fontWeight: 'bold' }}
+                <Statistic
+                  title={t('totalSeats') as string}
+                  value={billingInfo.total_seats}
+                  valueStyle={STATISTIC_VALUE_STYLE}
                 />
               </Col>
               <Col span={8}>
-                <Button 
-                  type="primary" 
-                  icon={<PlusOutlined />} 
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
                   onClick={handleAddMoreSeats}
-                  style={{ backgroundColor: '#1890ff', borderColor: '#1890ff' }}
+                  style={BUTTON_STYLE}
                 >
                   {t('addMoreSeats')}
                 </Button>
               </Col>
               <Col span={6}>
-                <Statistic 
-                  title={t('availableSeats')} 
-                  value={calculateRemainingSeats()} 
-                  valueStyle={{ fontSize: '24px', fontWeight: 'bold' }}
+                <Statistic
+                  title={t('availableSeats') as string}
+                  value={calculateRemainingSeats}
+                  valueStyle={STATISTIC_VALUE_STYLE}
                 />
               </Col>
             </Row>
@@ -305,20 +369,57 @@ const CurrentPlanDetails = () => {
         )}
       </Flex>
     );
-  };
+  }, [billingInfo, shouldShowAddSeats, handleAddMoreSeats, calculateRemainingSeats, t]);
 
-  const renderCreditSubscriptionInfo = () => {
-    return <Flex vertical>
-      <Typography.Text strong>Credit Plan</Typography.Text>
-    </Flex>
-  };  
+  const renderCreditSubscriptionInfo = useCallback(() => {
+    return (
+      <Flex vertical>
+        <Typography.Text strong>{t('creditPlan', 'Credit Plan')}</Typography.Text>
+      </Flex>
+    );
+  }, [t]);
 
-  const renderCustomSubscriptionInfo = () => {
-    return <Flex vertical>
-      <Typography.Text strong>Custom Plan</Typography.Text>
-      <Typography.Text>Your plan is valid till {billingInfo?.valid_till_date}</Typography.Text>
-    </Flex>
-  }; 
+  const renderCustomSubscriptionInfo = useCallback(() => {
+    return (
+      <Flex vertical>
+        <Typography.Text strong>{t('customPlan', 'Custom Plan')}</Typography.Text>
+        <Typography.Text>
+          {t('planValidTill', 'Your plan is valid till {{date}}', {
+            date: billingInfo?.valid_till_date,
+          })}
+        </Typography.Text>
+      </Flex>
+    );
+  }, [billingInfo?.valid_till_date, t]);
+
+  const renderSubscriptionContent = useCallback(() => {
+    if (!billingInfo) return null;
+
+    switch (billingInfo.subscription_type) {
+      case ISUBSCRIPTION_TYPE.LIFE_TIME_DEAL:
+        return renderLtdDetails();
+      case ISUBSCRIPTION_TYPE.TRIAL:
+        return renderTrialDetails();
+      case ISUBSCRIPTION_TYPE.FREE:
+        return renderFreePlan();
+      case ISUBSCRIPTION_TYPE.PADDLE:
+        return renderPaddleSubscriptionInfo();
+      case ISUBSCRIPTION_TYPE.CREDIT:
+        return renderCreditSubscriptionInfo();
+      case ISUBSCRIPTION_TYPE.CUSTOM:
+        return renderCustomSubscriptionInfo();
+      default:
+        return null;
+    }
+  }, [
+    billingInfo,
+    renderLtdDetails,
+    renderTrialDetails,
+    renderFreePlan,
+    renderPaddleSubscriptionInfo,
+    renderCreditSubscriptionInfo,
+    renderCustomSubscriptionInfo,
+  ]);
 
   return (
     <Card
@@ -326,7 +427,6 @@ const CurrentPlanDetails = () => {
       title={
         <Typography.Text
           style={{
-
             color: themeMode === 'dark' ? '#ffffffd9' : '#000000d9',
             fontWeight: 500,
             fontSize: '16px',
@@ -340,15 +440,10 @@ const CurrentPlanDetails = () => {
     >
       <Flex vertical>
         <div style={{ marginBottom: '14px' }}>
-          {billingInfo?.subscription_type === ISUBSCRIPTION_TYPE.LIFE_TIME_DEAL && renderLtdDetails()}
-          {billingInfo?.subscription_type === ISUBSCRIPTION_TYPE.TRIAL && renderTrialDetails()}
-          {billingInfo?.subscription_type === ISUBSCRIPTION_TYPE.FREE && renderFreePlan()}
-          {billingInfo?.subscription_type === ISUBSCRIPTION_TYPE.PADDLE && renderPaddleSubscriptionInfo()}
-          {billingInfo?.subscription_type === ISUBSCRIPTION_TYPE.CREDIT && renderCreditSubscriptionInfo()}
-          {billingInfo?.subscription_type === ISUBSCRIPTION_TYPE.CUSTOM && renderCustomSubscriptionInfo()}
+          {renderSubscriptionContent()}
         </div>
 
-        {shouldShowRedeemButton() && (
+        {shouldShowRedeemButton && (
           <>
             <Button
               type="link"
@@ -370,7 +465,7 @@ const CurrentPlanDetails = () => {
         >
           {browserTimeZone === 'Asia/Colombo' ? <UpgradePlansLKR /> : <UpgradePlans />}
         </Modal>
-        
+
         <Modal
           title={t('addMoreSeats')}
           open={isMoreSeatsModalVisible}
@@ -380,18 +475,33 @@ const CurrentPlanDetails = () => {
           centered
         >
           <Flex vertical gap="middle" style={{ marginTop: '8px' }}>
-            <Typography.Paragraph style={{ fontSize: '16px', margin: '0 0 16px 0', fontWeight: 500 }}>
-              To continue, you'll need to purchase additional seats.
+            <Typography.Paragraph
+              style={{ fontSize: '16px', margin: '0 0 16px 0', fontWeight: 500 }}
+            >
+              {billingInfo?.total_used === 1 
+                ? t('purchaseSeatsTextSingle', "Add more seats to invite team members to your workspace.")
+                : t('purchaseSeatsText', "To continue, you'll need to purchase additional seats.")
+              }
             </Typography.Paragraph>
-            
+
             <Typography.Paragraph style={{ margin: '0 0 16px 0' }}>
-              You currently have {billingInfo?.total_seats} seats available.
+              {t('currentSeatsText', 'You currently have {{seats}} seats available.', {
+                seats: billingInfo?.total_seats,
+              })}
+              {billingInfo?.total_used === 1 && (
+                <span style={{ color: '#666', marginLeft: '8px' }}>
+                  ({t('singleUserNote', 'Currently used by 1 team member')})
+                </span>
+              )}
             </Typography.Paragraph>
-            
+
             <Typography.Paragraph style={{ margin: '0 0 24px 0' }}>
-              Please select the number of additional seats to purchase.
+              {billingInfo?.total_used === 1
+                ? t('selectSeatsTextSingle', 'Select how many additional seats you need for new team members.')
+                : t('selectSeatsText', 'Please select the number of additional seats to purchase.')
+              }
             </Typography.Paragraph>
-            
+
             <div style={{ marginBottom: '24px' }}>
               <span style={{ color: '#ff4d4f', marginRight: '4px' }}>*</span>
               <span style={{ marginRight: '8px' }}>Seats:</span>
@@ -401,29 +511,26 @@ const CurrentPlanDetails = () => {
                 options={seatCountOptions}
                 style={{ width: '300px' }}
               />
+
             </div>
-            
+
             <Flex justify="end">
-              {selectedSeatCount.toString() !== '100+' ? (
-                <Button 
-                  type="primary" 
+              {selectedSeatCount.toString() !== SEAT_COUNT_LIMIT ? (
+                <Button
+                  type="primary"
                   loading={addingSeats}
                   onClick={handlePurchaseMoreSeats}
-                  style={{ 
-                    minWidth: '100px', 
-                    backgroundColor: '#1890ff',
-                    borderColor: '#1890ff',
-                    borderRadius: '2px'
+                  style={{
+                    minWidth: '100px',
+                    ...BUTTON_STYLE,
+                    borderRadius: '2px',
                   }}
                 >
-                  Purchase
+                  {t('purchase', 'Purchase')}
                 </Button>
               ) : (
-                <Button 
-                  type="primary" 
-                  size="middle"
-                >
-                  Contact sales
+                <Button type="primary" size="middle">
+                  {t('contactSales', 'Contact sales')}
                 </Button>
               )}
             </Flex>

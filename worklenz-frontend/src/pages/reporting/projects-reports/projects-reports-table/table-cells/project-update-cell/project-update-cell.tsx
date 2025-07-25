@@ -1,4 +1,4 @@
-import { Typography } from 'antd';
+import { Typography } from '@/shared/antd-imports';
 import React from 'react';
 
 type ProjectUpdateCellProps = {
@@ -12,7 +12,7 @@ const ProjectUpdateCell = ({ updates }: ProjectUpdateCellProps) => {
       ellipsis={{ expanded: false }}
       className="group-hover:text-[#1890ff]"
     >
-      <div dangerouslySetInnerHTML={{__html: updates}} />
+      <div dangerouslySetInnerHTML={{ __html: updates }} />
     </Typography.Text>
   );
 };
