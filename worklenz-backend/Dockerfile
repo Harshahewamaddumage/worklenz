@@ -34,6 +34,6 @@ COPY --from=builder /usr/src/app/release ./release
 COPY --from=builder /usr/src/app/worklenz-email-templates ./worklenz-email-templates
 
 
-EXPOSE 3000
+EXPOSE 8080
 CMD ["node", "build/bin/www"]
 
